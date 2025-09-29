@@ -34,14 +34,25 @@ console.log("🔧 Server starting...");
 app.use(express.json({ limit: '10mb' })); // Increase limit if needed for JSON
 app.use(cookieParser());
 
+const allowedOrigins = ["https://keysystem.in",
+  "https://www.keysystem.in",
+  "http://localhost:5173"
+];
 app.use(
   cors({
-    origin:"http://www.keysystem.in",
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization']
   })
 );
+
 
 // Add logging middleware
 app.use((req, res, next) => {
