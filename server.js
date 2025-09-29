@@ -36,7 +36,7 @@ app.use(cookieParser());
 
 app.use(
   cors({
-    origin:"https://keysystem.in || http://localhost:5173 || http://www.keysystem.in || * ",
+    origin:"http://www.keysystem.in",
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization']
