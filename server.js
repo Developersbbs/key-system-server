@@ -34,9 +34,12 @@ console.log("🔧 Server starting...");
 app.use(express.json({ limit: '10mb' })); // Increase limit if needed for JSON
 app.use(cookieParser());
 
-const allowedOrigins = ["https://keysystem.in",
+const allowedOrigins = [
+  "https://keysystem.in",
   "https://www.keysystem.in",
-  "http://localhost:5173"
+  "http://localhost:5173",
+  // Add your actual production frontend URL here
+  // Example: "https://your-app.vercel.app"
 ];
 app.use(
   cors({

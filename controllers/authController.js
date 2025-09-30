@@ -11,7 +11,7 @@ async function setSessionCookie(res, idToken, rememberMe) {
   res.cookie(COOKIE_NAME, sessionCookie, {
     httpOnly: true,
     secure: isProd,
-    sameSite: "strict",
+    sameSite: isProd ? "none" : "lax", // 'none' required for cross-origin cookies in production
     maxAge: expiresInMs,
     path: "/",
   });
