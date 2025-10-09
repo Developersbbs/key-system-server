@@ -38,6 +38,7 @@ const allowedOrigins = [
   "https://keysystem.in",
   "https://www.keysystem.in",
   "http://localhost:5173",
+  "http://localhost:8080",
   // Add your actual production frontend URL here
   // Example: "https://your-app.vercel.app"
 ];
@@ -154,7 +155,7 @@ app.use((err, req, res, next) => {
 });
 
 // ===== Start Server =====
-const PORT = process.env.PORT || 5002;
+const PORT = process.env.PORT || 5001;
 app.listen(PORT, () => {
   console.log(`✅ Server running on port ${PORT}`);
   console.log(`🔗 Test your upload route: http://localhost:${PORT}/api/uploads/test`);
