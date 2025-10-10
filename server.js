@@ -41,6 +41,7 @@ const allowedOrigins = [
   "http://127.0.0.1:8080",
   "http://72.60.201.170:8080",
   "http://localhost:8080",
+  'http://72.60.201.170:3000',
   // Add your actual production frontend URL here
   // Example: "https://your-app.vercel.app"
 ];
