@@ -25,9 +25,9 @@ router.post('/', auth, allowRoles(['admin']), createCourse);
 router.put('/:id', auth, allowRoles(['admin']), updateCourse);
 router.delete('/:id', auth, allowRoles(['admin']), deleteCourse);
 
-// --- PUBLIC ROUTES (now require authentication) ---
-// : Get only admin-approved courses for public viewing
-router.get('/approved', auth, getApprovedCourses);
+// --- PUBLIC ROUTES (for approved courses only) ---
+// Get only admin-approved courses for public viewing
+router.get('/approved', getApprovedCourses);
 
 // The general "get all" route (for admin use)
 router.get('/', auth, getAllCourses);

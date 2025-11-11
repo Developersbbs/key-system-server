@@ -6,7 +6,7 @@ const { createLevel, getAllLevels, updateLevel, deleteLevel } = require('../cont
 
 router.route('/')
   .post(auth, allowRoles(['admin']), createLevel)
-  .get(auth, allowRoles(['admin', 'member']), getAllLevels);
+  .get(getAllLevels);
 
 router.route('/:id')
   .put(auth, allowRoles(['admin']), updateLevel)
