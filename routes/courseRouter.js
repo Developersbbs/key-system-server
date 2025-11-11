@@ -25,15 +25,15 @@ router.post('/', auth, allowRoles(['admin']), createCourse);
 router.put('/:id', auth, allowRoles(['admin']), updateCourse);
 router.delete('/:id', auth, allowRoles(['admin']), deleteCourse);
 
-// --- PUBLIC ROUTES ---
-// ✅ NEW ROUTE: Get only admin-approved courses for public viewing
-router.get('/approved', getApprovedCourses);
+// --- PUBLIC ROUTES (now require authentication) ---
+// : Get only admin-approved courses for public viewing
+router.get('/approved', auth, getApprovedCourses);
 
 // The general "get all" route (for admin use)
-router.get('/', getAllCourses);
+router.get('/', auth, getAllCourses);
 
 // The dynamic "get by id" route MUST be last among the GET routes
-router.get('/:id', getCourseById);
+router.get('/:id', auth, getCourseById);
 
 router.use('/:courseId/chapters', chapterRouter);
 module.exports = router;

@@ -9,8 +9,8 @@ const {
   deleteEvent 
 } = require('../controllers/eventController');
 
-// GET /api/events - Public route to see all events
-router.get('/', getAllEvents);
+// GET /api/events - Protected route to see all events (now requires authentication)
+router.get('/', auth, getAllEvents);
 
 // POST /api/events - Protected route for members to create an event
 router.post('/', auth, allowRoles(['member', 'admin']), createEvent);

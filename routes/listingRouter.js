@@ -5,8 +5,8 @@ const allowRoles = require('../middlewares/allowRoles');
 // ✅ 1. Import the new deleteListing function and updateListingQuantity
 const { getAllListings, createListing, deleteListing, updateListingQuantity } = require('../controllers/listingController');
 
-// Public route to see all listings
-router.get('/', getAllListings);
+// Protected route to see all listings (now requires authentication)
+router.get('/', auth, getAllListings);
 
 // Protected route for members to create a listing
 router.post('/', auth, allowRoles(['member', 'admin']), createListing);
