@@ -66,17 +66,34 @@ exports.login = async (req, res) => {
     }
 
     const decoded = await admin.auth().verifyIdToken(idToken, true);
+    const firebaseUID = decoded.uid;
+    const phoneNumber = decoded.phone_number;
 
-    const user = await User.findOne({ firebaseUID: decoded.uid });
+    // First try to find user by Firebase UID
+    let user = await User.findOne({ firebaseUID });
+
+    // If not found by UID, try to find by phone number and update the UID
+    if (!user && phoneNumber) {
+      const formattedPhone = phoneNumber.startsWith("+91") ? phoneNumber : `+91${phoneNumber}`;
+      user = await User.findOne({ phoneNumber: formattedPhone });
+
+      if (user) {
+        // Update the Firebase UID to match current authentication
+        user.firebaseUID = firebaseUID;
+        await user.save();
+        console.log(`Updated Firebase UID for user ${user._id} from phone number match`);
+      }
+    }
+
     if (!user) {
       return res.status(401).json({ message: "User not registered. Please register first." });
     }
 
     await setSessionCookie(res, idToken, !!rememberMe);
-    return res.json({ 
-      message: "Login successful", 
-      user, 
-      role: user.role 
+    return res.json({
+      message: "Login successful",
+      user,
+      role: user.role
     });
   } catch (err) {
     console.error("Login error:", err);

@@ -39,7 +39,7 @@ const allowedOrigins = [
   "https://www.keysystem.in",
   "http://localhost:5173",
   "http://localhost:5174",
- 
+  "http://localhost:5001",
   
   "http://localhost:8080",
   
