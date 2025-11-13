@@ -14,6 +14,7 @@ const courseRouter = require('./routes/courseRouter');
 const levelRouter = require('./routes/levelRouter');
 const batchRouter = require('./routes/batchRouter');
 const mcqRoutes = require('./routes/mcqsRouter');
+const chapterProgressRouter = require('./routes/chapterProgressRouter');
 const eventRouter = require('./routes/eventRouter');
 const meetingRouter = require('./routes/meetingRouter');
 const listingRouter = require('./routes/listingRouter');
@@ -117,6 +118,7 @@ app.use('/api/events', eventRouter);
 app.use('/api/listings', listingRouter);
 app.use('/api/meetings', meetingRouter);
 app.use('/api/transactions', transactionRouter);
+app.use('/api/chapters', chapterProgressRouter);
 app.use('/api/chapters/:chapterId/mcqs', mcqRoutes);
 // app.use('/api/uploads', uploadRouter); // ✅ Only this line for uploads
 app.use('/api/users', userRouter);

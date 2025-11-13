@@ -1,5 +1,6 @@
 const Course = require('../models/Course');
 const Level = require('../models/Level');
+const User = require('../models/User');
 
 // @desc    Create a new course
 exports.createCourse = async (req, res) => {
@@ -33,11 +34,54 @@ exports.createCourse = async (req, res) => {
 // ✅ MODIFIED: Sequential course unlock logic
 exports.getMemberCourses = async (req, res) => {
   try {
-    const user = req.user;
-    if (!user || !user.accessibleLevels) {
+    const userFromAuth = req.user;
+    if (!userFromAuth || !userFromAuth._id) {
       return res.status(401).json({ message: 'Not authorized.' });
     }
-    
+
+    const user = await User.findById(userFromAuth._id);
+    if (!user) {
+      return res.status(401).json({ message: 'Not authorized.' });
+    }
+
+    // Ensure unlocked levels stay in sync with completion status (handles levels created after completion)
+    const completedCourseIdsForSync = user.completedCourses.map(id => id.toString());
+    const allLevels = await Level.find({}).sort({ levelNumber: 1 }).populate('courses', '_id');
+    let accessibleUpdated = false;
+
+    allLevels.forEach((level, index) => {
+      const levelNumber = level.levelNumber;
+
+      if (levelNumber === 1 && !user.accessibleLevels.includes(1)) {
+        user.accessibleLevels.push(1);
+        accessibleUpdated = true;
+        return;
+      }
+
+      if (user.accessibleLevels.includes(levelNumber)) {
+        return;
+      }
+
+      const previousLevel = allLevels[index - 1];
+      if (!previousLevel) {
+        return;
+      }
+
+      const previousLevelCompleted = previousLevel.courses.every(course =>
+        completedCourseIdsForSync.includes(course._id.toString())
+      );
+
+      if (previousLevelCompleted) {
+        user.accessibleLevels.push(levelNumber);
+        accessibleUpdated = true;
+      }
+    });
+
+    if (accessibleUpdated) {
+      user.accessibleLevels = Array.from(new Set(user.accessibleLevels)).sort((a, b) => a - b);
+      await user.save();
+    }
+
     // Find all Level documents where the levelNumber is in the user's access list
     const unlockedLevels = await Level.find({ 
       levelNumber: { $in: user.accessibleLevels } 
@@ -48,7 +92,7 @@ exports.getMemberCourses = async (req, res) => {
     
     // ✅ NEW LOGIC: Only show courses that user can access sequentially
     const accessibleCourses = [];
-    const completedCourseIds = user.completedCourses.map(id => id.toString());
+    const userCompletedCourseIds = user.completedCourses.map(id => id.toString());
     
     // Group courses by level for sequential unlocking
     for (const level of unlockedLevels) {
@@ -56,12 +100,12 @@ exports.getMemberCourses = async (req, res) => {
       
       // Find how many courses in this level the user has completed
       const completedCoursesInLevel = coursesInLevel.filter(course => 
-        completedCourseIds.includes(course._id.toString())
+        userCompletedCourseIds.includes(course._id.toString())
       ).length;
       
       // Add completed courses
       coursesInLevel.forEach(course => {
-        if (completedCourseIds.includes(course._id.toString())) {
+        if (userCompletedCourseIds.includes(course._id.toString())) {
           accessibleCourses.push({
             ...course.toObject(),
             isCompleted: true,
@@ -73,7 +117,7 @@ exports.getMemberCourses = async (req, res) => {
       // Add the next unlocked course (if any)
       if (completedCoursesInLevel < coursesInLevel.length) {
         const nextCourse = coursesInLevel[completedCoursesInLevel];
-        if (nextCourse && !completedCourseIds.includes(nextCourse._id.toString())) {
+        if (nextCourse && !userCompletedCourseIds.includes(nextCourse._id.toString())) {
           accessibleCourses.push({
             ...nextCourse.toObject(),
             isCompleted: false,
