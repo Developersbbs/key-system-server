@@ -233,3 +233,48 @@ exports.updateUserStatus = async (req, res) => {
     res.status(500).json({ message: 'Server Error' });
   }
 };
+/**
+ * @desc    Update user details (name, email, phone)
+ * @route   PUT /api/admin/users/:userId
+ * @access  Admin
+ */
+exports.updateUserDetails = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { name, email, phoneNumber } = req.body;
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (email && email !== user.email) {
+      const emailExists = await User.findOne({ email });
+      if (emailExists) {
+        return res.status(400).json({ message: 'Email already in use' });
+      }
+      user.email = email;
+    }
+
+    if (name) user.name = name;
+    if (phoneNumber) user.phoneNumber = phoneNumber;
+
+    await user.save();
+
+    res.status(200).json({
+      message: 'User details updated successfully',
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        phoneNumber: user.phoneNumber,
+        role: user.role,
+        isActive: user.isActive
+      }
+    });
+
+  } catch (err) {
+    console.error('Error updating user details:', err);
+    res.status(500).json({ message: 'Server Error' });
+  }
+};

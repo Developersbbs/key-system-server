@@ -14,7 +14,26 @@ const founderSchema = new mongoose.Schema({
     designation: {
         type: String,
         required: true,
-        enum: ['Founder', 'Director', 'Senior Director', 'Key Leader'],
+        trim: true
+    },
+    mobile: {
+        type: String,
+        trim: true,
+        default: ''
+    },
+    address: {
+        type: String,
+        trim: true,
+        default: ''
+    },
+    state: {
+        type: String,
+        required: true,
+        trim: true
+    },
+    district: {
+        type: String,
+        required: true,
         trim: true
     },
     imageUrl: {

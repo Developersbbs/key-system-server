@@ -11,7 +11,8 @@ const {
   updateCourseAccess,
   updateUserLevels,
   updateUserStatus,
-  getAllUsers
+  getAllUsers,
+  updateUserDetails
 } = require('../controllers/adminController');
 
 router.get('/users', auth, allowRoles('admin', 'superadmin'), getAllUsers);
@@ -23,5 +24,6 @@ router.put('/users/:userId/role', auth, allowRoles('admin', 'superadmin'), updat
 router.put('/users/:userId/access', auth, allowRoles('admin', 'superadmin'), updateCourseAccess);
 router.put('/users/:userId/levels', auth, allowRoles('admin', 'superadmin'), updateUserLevels);
 router.put('/users/:userId/status', auth, allowRoles('admin', 'superadmin'), updateUserStatus);
+router.put('/users/:userId', auth, allowRoles('admin', 'superadmin'), updateUserDetails);
 
 module.exports = router;

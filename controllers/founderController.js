@@ -30,7 +30,7 @@ exports.getAllFoundersAdmin = async (req, res) => {
 // Create a new founder (Admin)
 exports.createFounder = async (req, res) => {
     try {
-        const { name, designation, imageUrl, description, socialLinks, order, isActive, user } = req.body;
+        const { name, designation, imageUrl, description, socialLinks, order, isActive, user, mobile, address, state, district } = req.body;
 
         let founderData = {
             name,
@@ -39,7 +39,11 @@ exports.createFounder = async (req, res) => {
             description,
             socialLinks,
             order,
-            isActive
+            isActive,
+            mobile,
+            address,
+            state,
+            district
         };
 
         if (user) {
