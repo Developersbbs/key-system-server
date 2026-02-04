@@ -4,7 +4,7 @@ const User = require('../models/User');
 // Get user profile
 exports.getProfile = async (req, res) => {
   try {
-    const user = await User.findById(req.user._id).select('-googleTokens');
+    const user = await User.findById(req.user._id);
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
@@ -19,7 +19,7 @@ exports.getProfile = async (req, res) => {
 exports.updatePaymentDetails = async (req, res) => {
   try {
     const { upiId, qrCodeUrl, accountHolderName, accountNumber, ifscCode, bankName } = req.body;
-    
+
     const user = await User.findById(req.user._id);
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
@@ -39,14 +39,14 @@ exports.updatePaymentDetails = async (req, res) => {
     if (bankName !== undefined) user.paymentDetails.bankName = bankName;
 
     await user.save();
-    
+
     // Return user without sensitive data
-    const updatedUser = await User.findById(user._id).select('-googleTokens');
+    const updatedUser = await User.findById(user._id);
     res.status(200).json({
       message: 'Payment details updated successfully',
       user: updatedUser
     });
-    
+
   } catch (err) {
     console.error('Error updating payment details:', err);
     res.status(500).json({ message: 'Server Error', error: err.message });
@@ -57,7 +57,7 @@ exports.updatePaymentDetails = async (req, res) => {
 exports.updateProfileSettings = async (req, res) => {
   try {
     const { showPhoneNumber, showPaymentDetails } = req.body;
-    
+
     const user = await User.findById(req.user._id);
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
@@ -73,13 +73,13 @@ exports.updateProfileSettings = async (req, res) => {
     if (showPaymentDetails !== undefined) user.profileSettings.showPaymentDetails = showPaymentDetails;
 
     await user.save();
-    
-    const updatedUser = await User.findById(user._id).select('-googleTokens');
+
+    const updatedUser = await User.findById(user._id);
     res.status(200).json({
       message: 'Profile settings updated successfully',
       user: updatedUser
     });
-    
+
   } catch (err) {
     console.error('Error updating profile settings:', err);
     res.status(500).json({ message: 'Server Error' });
@@ -90,7 +90,7 @@ exports.updateProfileSettings = async (req, res) => {
 exports.getSellerPaymentDetails = async (req, res) => {
   try {
     const { sellerId } = req.params;
-    
+
     // Validate sellerId
     if (!sellerId) {
       return res.status(400).json({ message: 'Seller ID is required' });
@@ -102,7 +102,7 @@ exports.getSellerPaymentDetails = async (req, res) => {
     }
 
     const publicPaymentDetails = seller.getPublicPaymentDetails();
-    
+
     if (!publicPaymentDetails) {
       return res.status(403).json({ message: 'Seller has not shared payment details' });
     }
@@ -111,7 +111,7 @@ exports.getSellerPaymentDetails = async (req, res) => {
       sellerName: seller.name,
       paymentDetails: publicPaymentDetails
     });
-    
+
   } catch (err) {
     console.error('Error fetching seller payment details:', err);
     res.status(500).json({ message: 'Server Error', error: err.message });

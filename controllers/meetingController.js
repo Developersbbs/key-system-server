@@ -1,19 +1,43 @@
-const { google } = require('googleapis');
-const Meeting = require('../models/Meeting');
-const User = require('../models/User');
+const Meeting = require("../models/Meeting");
+const MeetingLog = require("../models/MeetingLog");
+const MeetingMom = require("../models/MeetingMom");
+const Admin = require("../models/Admin");
+const User = require("../models/User");
+const zoomService = require('../services/zoomService');
 
-// Configure the Google OAuth2 client
-const oauth2Client = new google.auth.OAuth2(
-  process.env.GOOGLE_CLIENT_ID,
-  process.env.GOOGLE_CLIENT_SECRET,
-  process.env.GOOGLE_REDIRECT_URI
-);
+// --- CREATE MEETING ---
+exports.createMeeting = async (req, res) => {
+  try {
+    const { title, description, meetingDate, meetingLink, host, participants, zoomMeetingId } = req.body;
+    const adminUserId = req.user._id;
 
-/**
- * @desc    Get all meetings
- * @route   GET /api/meetings
- * @access  Admin
- */
+    // Validation
+    if (!title || !meetingDate || !meetingLink) {
+      return res.status(400).json({ message: "Title, Date, and Link are required." });
+    }
+
+    const newMeeting = new Meeting({
+      title,
+      description: description || '',
+      meetingDate,
+      meetingLink,
+      host,
+      participants,
+      createdBy: adminUserId,
+      zoomMeetingId // Save Zoom ID
+    });
+
+    const savedMeeting = await newMeeting.save();
+    await savedMeeting.populate(['createdBy', 'host', 'participants'], 'name');
+
+    res.status(201).json(savedMeeting);
+  } catch (err) {
+    console.error("Error creating meeting:", err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+
+// --- GET ALL MEETINGS ---
 exports.getAllMeetings = async (req, res) => {
   try {
     const meetings = await Meeting.find({})
@@ -23,19 +47,17 @@ exports.getAllMeetings = async (req, res) => {
       .populate('participants', 'name');
     res.status(200).json(meetings);
   } catch (err) {
-    res.status(500).json({ message: 'Server Error' });
+    console.error("Error fetching meetings:", err);
+    res.status(500).json({ message: "Server error" });
   }
 };
 
-/**
- * @desc    Get meetings for a specific member
- * @route   GET /api/meetings/member/:userId
- * @access  Private
- */
+// --- GET MEMBER MEETINGS ---
 exports.getMemberMeetings = async (req, res) => {
   try {
     const { userId } = req.params;
-    
+
+    // Find meetings where the user is a participant
     const meetings = await Meeting.find({
       participants: userId
     })
@@ -43,131 +65,230 @@ exports.getMemberMeetings = async (req, res) => {
       .populate('createdBy', 'name')
       .populate('host', 'name')
       .populate('participants', 'name');
-    
+
     res.status(200).json(meetings);
   } catch (err) {
+    console.error("Error fetching member meetings:", err);
     res.status(500).json({ message: 'Server Error' });
   }
 };
 
-/**
- * @desc    Create a new meeting and generate a Google Meet link
- * @route   POST /api/meetings
- * @access  Admin
- */
-exports.createMeeting = async (req, res) => {
+// --- DELETE MEETING ---
+exports.deleteMeeting = async (req, res) => {
   try {
-    const { title, description, meetingDate, host, participants } = req.body;
-    const adminUserId = req.user._id;
+    const { id } = req.params;
+    await Meeting.findByIdAndDelete(id);
+    res.json({ message: "Meeting deleted successfully" });
+  } catch (err) {
+    console.error("Error deleting meeting:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
 
-    const adminUser = await User.findById(adminUserId);
-    if (!adminUser || !adminUser.googleTokens) {
-      return res.status(400).json({ message: 'Admin has not connected their Google Account.' });
+// --- JOIN MEETING ---
+exports.joinMeeting = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user._id;
+    const userName = req.user.name;
+
+    const meeting = await Meeting.findById(id);
+    if (!meeting) {
+      return res.status(404).json({ message: "Meeting not found" });
     }
 
-    // Set the credentials for the API call
-    oauth2Client.setCredentials(adminUser.googleTokens);
-    
-    // Refresh the access token if needed
-    if (adminUser.googleTokens.expiry_date < Date.now()) {
-      try {
-        const { credentials } = await oauth2Client.refreshAccessToken();
-        adminUser.googleTokens = credentials;
-        await adminUser.save();
-        oauth2Client.setCredentials(credentials);
-      } catch (refreshError) {
-        console.error("Error refreshing token:", refreshError);
-        return res.status(400).json({ 
-          message: 'Google authentication expired. Please reconnect your Google account.',
-          requiresReauth: true
-        });
+    await MeetingLog.create({
+      meetingId: id,
+      userId: userId,
+      userName: userName,
+      joinedAt: new Date()
+    });
+
+    return res.status(200).json({ message: "Attendance logged", link: meeting.meetingLink });
+  } catch (err) {
+    console.error("Error joining meeting:", err);
+    return res.status(500).json({ message: "Server error logging attendance" });
+  }
+};
+
+// --- GET MEETING LOGS ---
+exports.getMeetingLogs = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const logs = await MeetingLog.find({ meetingId: id }).sort({ joinedAt: -1 });
+    return res.status(200).json({ logs });
+  } catch (err) {
+    console.error("Error fetching logs:", err);
+    return res.status(500).json({ message: "Server error fetching logs" });
+  }
+};
+
+// --- GENERATE ZOOM MEETING ---
+exports.generateZoomMeeting = async (req, res) => {
+  try {
+    const { topic, startTime, duration, host } = req.body;
+
+    console.log("Generate Zoom Request - Host ID:", host);
+    console.log("Generate Zoom Request - Current User ID:", req.user?._id);
+
+    let hostEmail = null;
+
+    // 0. Check for System Default Host Email
+    const SystemConfig = require('../models/SystemConfig');
+    const config = await SystemConfig.getConfig();
+    console.log("DEBUG: Fetched SystemConfig:", config);
+    if (config.zoomHostEmail) {
+      console.log("Using System Default Zoom Email:", config.zoomHostEmail);
+      hostEmail = config.zoomHostEmail;
+    }
+
+    // 1. Try to find selected Host (only if no global override)
+    if (!hostEmail && host) {
+      // Try Admin collection first
+      let adminHost = await Admin.findById(host);
+      if (adminHost) {
+        console.log("Found Host in Admin collection:", adminHost.email);
+        hostEmail = adminHost.email;
+      } else {
+        // Try User collection
+        let userHost = await User.findById(host);
+        if (userHost) {
+          console.log("Found Host in User collection:", userHost.email);
+          hostEmail = userHost.email;
+        }
       }
     }
 
-    const calendar = google.calendar({ 
-      version: 'v3', 
-      auth: oauth2Client 
-    });
-    
-    // Create the event on Google Calendar and request a conference link
-    const event = {
-      summary: title,
-      description,
-      start: { 
-        dateTime: new Date(meetingDate).toISOString(),
-        timeZone: 'Asia/Kolkata'
-      },
-      end: { 
-        dateTime: new Date(new Date(meetingDate).getTime() + 60 * 60 * 1000).toISOString(),
-        timeZone: 'Asia/Kolkata'
-      },
-      conferenceData: {
-        createRequest: { 
-          requestId: `meet-${Date.now()}`,
-          conferenceSolutionKey: { type: 'hangoutsMeet' }
-        },
-      },
-    };
-
-    // Insert the event with conference data
-    const createdEvent = await calendar.events.insert({
-      calendarId: 'primary',
-      conferenceDataVersion: 1,
-      resource: event,
-      sendNotifications: true,
-    });
-
-    // Get the generated Google Meet link from the API response
-    const meetLink = createdEvent.data.hangoutLink;
-    const googleEventId = createdEvent.data.id;
-
-    // Save the meeting to your own database
-    const newMeeting = new Meeting({
-      title, 
-      description, 
-      meetingDate, 
-      host, 
-      participants,
-      meetingLink: meetLink,
-      googleEventId: googleEventId,
-      createdBy: adminUserId,
-    });
-
-    const savedMeeting = await newMeeting.save();
-    await savedMeeting.populate(['createdBy', 'host', 'participants'], 'name');
-    res.status(201).json(savedMeeting);
-
-  } catch (err) {
-    console.error("Error creating Google Meet:", err);
-    
-    // Handle specific Google API errors
-    if (err.code === 403) {
-      return res.status(403).json({ 
-        message: 'Insufficient permissions to create Google Meet. Please ensure your Google account has calendar permissions.',
-        requiresReauth: true
-      });
+    // 2. Fallback to current user if no host email found yet
+    if (!hostEmail) {
+      if (req.user && req.user.email) {
+        console.log("Using Current User Email:", req.user.email);
+        hostEmail = req.user.email;
+      }
     }
-    
-    res.status(500).json({ 
-      message: 'Failed to create meeting', 
-      error: err.message 
+
+    if (!hostEmail) {
+      console.error("FAILED to find host email. Host ID:", host, "User ID:", req.user?._id);
+      return res.status(400).json({ success: false, message: "Could not determine host email for Zoom meeting. Any selected host must be a valid user with an email address." });
+    }
+
+    const zoomMeeting = await zoomService.createZoomMeeting(topic, startTime, duration, hostEmail);
+    console.log("DEBUG: Created Zoom Meeting Response:", JSON.stringify(zoomMeeting, null, 2));
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        join_url: zoomMeeting.join_url,
+        meeting_id: zoomMeeting.id,
+        password: zoomMeeting.password
+      }
+    });
+  } catch (error) {
+    console.error("Error generating zoom meeting:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message
     });
   }
 };
 
-/**
- * @desc    Delete a meeting
- * @route   DELETE /api/meetings/:id
- * @access  Admin
- */
-exports.deleteMeeting = async (req, res) => {
-    try {
-        const meeting = await Meeting.findById(req.params.id);
-        if (!meeting) return res.status(404).json({ message: 'Meeting not found' });
-        
-        await meeting.deleteOne();
-        res.status(200).json({ message: 'Meeting deleted' });
-    } catch(err) {
-        res.status(500).json({ message: 'Server Error' });
+// --- SAVE MOM (NEW) ---
+exports.saveMom = async (req, res) => {
+  try {
+    const { id } = req.params; // Meeting ID
+    const userId = req.user._id;
+    const { content } = req.body;
+
+    const mom = await MeetingMom.findOneAndUpdate(
+      { meetingId: id, userId: userId },
+      { content: content },
+      { new: true, upsert: true }
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: 'Notes saved successfully',
+      data: mom
+    });
+  } catch (error) {
+    console.error("Error saving notes:", error);
+    return res.status(500).json({ message: "Server error saving notes" });
+  }
+};
+
+// --- GET MOM (NEW) ---
+exports.getMom = async (req, res) => {
+  try {
+    const { id } = req.params; // Meeting ID
+    const userId = req.user._id;
+
+    const mom = await MeetingMom.findOne({ meetingId: id, userId: userId });
+
+    return res.status(200).json({
+      success: true,
+      data: mom
+    });
+  } catch (error) {
+    console.error("Error fetching notes:", error);
+    return res.status(500).json({ message: "Server error fetching notes" });
+  }
+};
+
+// --- SYNC MEETING ATTENDANCE ---
+exports.syncMeetingAttendance = async (req, res) => {
+  try {
+    const { id } = req.params; // Meeting ID (DB ID)
+    const meeting = await Meeting.findById(id);
+
+    if (!meeting || !meeting.zoomMeetingId) {
+      return res.status(404).json({ message: "Meeting not found or not a Zoom meeting" });
     }
+
+    // 1. Fetch Report from Zoom
+    const report = await zoomService.getMeetingParticipantsReport(meeting.zoomMeetingId);
+
+    // Zoom API might return { message: "Report could not be retrieved" } or similar if not ready
+    if (!report || !report.participants) {
+      return res.status(400).json({ message: "Attendance report not available yet. (Wait for meeting to end)" });
+    }
+
+    console.log(`Syncing Attendance for Meeting ${id}. Found ${report.participants.length} participants.`);
+
+    let updatedCount = 0;
+
+    // 2. Process each participant
+    for (const p of report.participants) {
+      // p has { user_email, duration (seconds), name, join_time, leave_time }
+      if (p.user_email) {
+        // Find User by Email
+        const user = await User.findOne({ email: p.user_email });
+        if (user) {
+          // Upsert MeetingLog
+          // Note: duration from Zoom is in seconds, we store minutes.
+          const durationMinutes = Math.round(p.duration / 60);
+
+          await MeetingLog.findOneAndUpdate(
+            { meetingId: id, userId: user._id },
+            {
+              userName: user.name, // Ensure name is up to date
+              joinedAt: new Date(p.join_time),
+              duration: durationMinutes
+            },
+            { upsert: true, new: true }
+          );
+          updatedCount++;
+        }
+      }
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: `Synced attendance for ${updatedCount} members`,
+      data: report.participants
+    });
+
+  } catch (error) {
+    console.error("Error syncing attendance:", error);
+    return res.status(500).json({ message: "Server error syncing attendance" });
+  }
 };

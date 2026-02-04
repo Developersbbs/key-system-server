@@ -39,44 +39,44 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
-  
+
   batch: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Batch',
     default: null
   },
 
-  
+
   // --- App-Specific Fields ---
   accessibleLevels: {
     type: [Number],
     default: [1] // New users start with access to Level 1 by default
   },
-  
+
   // Track current level (for progression logic)
   currentLevel: {
     type: Number,
     default: 1
   },
-  
+
   // Track completed chapters (MCQs completed)
   completedChapters: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Course.chapters'
   }],
-  
+
   // Track unlocked courses (deprecated - now handled by sequential logic)
   unlockedCourses: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Course'
   }],
-  
+
   // Track individual courses the user has completed
   completedCourses: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Course'
   }],
-  
+
   // mcqResults with better structure
   mcqResults: [{
     chapterId: {
@@ -92,20 +92,20 @@ const userSchema = new mongoose.Schema({
     },
     total: {
       type: Number,
-      default: function() {
+      default: function () {
         return this.userAnswers ? Object.keys(this.userAnswers).length : 0;
       }
     },
-    userAnswers: { 
-      type: Map, 
-      of: Number 
+    userAnswers: {
+      type: Map,
+      of: Number
     },
-    completedAt: { 
-      type: Date, 
-      default: Date.now 
+    completedAt: {
+      type: Date,
+      default: Date.now
     }
   }],
-  
+
   // ENHANCED: Payment details for marketplace
   paymentDetails: {
     upiId: {
@@ -133,7 +133,7 @@ const userSchema = new mongoose.Schema({
       default: ''
     }
   },
-  
+
   // NEW: Profile settings for privacy control
   profileSettings: {
     showPhoneNumber: {
@@ -145,42 +145,40 @@ const userSchema = new mongoose.Schema({
       default: true
     }
   },
-  
-  googleTokens: {
-    type: Object,
-  },
 
-}, { 
+  // NEW: Profile settings for privacy control
+
+}, {
   timestamps: true,
 });
 
 // Virtual for effective accessible levels
-userSchema.virtual('effectiveAccessibleLevels').get(function() {
+userSchema.virtual('effectiveAccessibleLevels').get(function () {
   return this.batch?.accessibleLevels || this.accessibleLevels || [1];
 });
 
 // Virtual for getting next unlocked course in current level
-userSchema.virtual('nextUnlockedCourse').get(function() {
+userSchema.virtual('nextUnlockedCourse').get(function () {
   return null; // Placeholder - implement based on your needs
 });
 
 // Method to check if user can access a specific course
-userSchema.methods.canAccessCourse = function(courseId, coursePosition, levelCourses) {
+userSchema.methods.canAccessCourse = function (courseId, coursePosition, levelCourses) {
   const completedCourseIds = this.completedCourses.map(id => id.toString());
-  
+
   if (completedCourseIds.includes(courseId.toString())) {
     return { canAccess: true, reason: 'Course already completed' };
   }
-  
+
   if (coursePosition === 0) {
     return { canAccess: true, reason: 'First course in level' };
   }
-  
+
   const previousCourses = levelCourses.slice(0, coursePosition);
-  const allPreviousCompleted = previousCourses.every(prevCourse => 
+  const allPreviousCompleted = previousCourses.every(prevCourse =>
     completedCourseIds.includes(prevCourse._id.toString())
   );
-  
+
   if (allPreviousCompleted) {
     return { canAccess: true, reason: 'Previous courses completed' };
   } else {
@@ -189,30 +187,30 @@ userSchema.methods.canAccessCourse = function(courseId, coursePosition, levelCou
 };
 
 // Method to get course completion percentage
-userSchema.methods.getCourseCompletionPercentage = function(courseChapterIds) {
+userSchema.methods.getCourseCompletionPercentage = function (courseChapterIds) {
   const completedChapterIds = this.mcqResults.map(result => result.chapterId.toString());
-  const completedCount = courseChapterIds.filter(chapterId => 
+  const completedCount = courseChapterIds.filter(chapterId =>
     completedChapterIds.includes(chapterId.toString())
   ).length;
-  
+
   return courseChapterIds.length > 0 ? Math.round((completedCount / courseChapterIds.length) * 100) : 0;
 };
 
 // Method to check if course is completed
-userSchema.methods.isCourseCompleted = function(courseChapterIds) {
+userSchema.methods.isCourseCompleted = function (courseChapterIds) {
   const completedChapterIds = this.mcqResults.map(result => result.chapterId.toString());
-  return courseChapterIds.every(chapterId => 
+  return courseChapterIds.every(chapterId =>
     completedChapterIds.includes(chapterId.toString())
   );
 };
 
 // Method to get level progress
-userSchema.methods.getLevelProgress = function(levelCourses) {
+userSchema.methods.getLevelProgress = function (levelCourses) {
   const completedCourseIds = this.completedCourses.map(id => id.toString());
-  const completedCount = levelCourses.filter(course => 
+  const completedCount = levelCourses.filter(course =>
     completedCourseIds.includes(course._id.toString())
   ).length;
-  
+
   return {
     totalCourses: levelCourses.length,
     completedCourses: completedCount,
@@ -222,7 +220,7 @@ userSchema.methods.getLevelProgress = function(levelCourses) {
 };
 
 // FIXED: Method to get public payment details (for buyers)
-userSchema.methods.getPublicPaymentDetails = function() {
+userSchema.methods.getPublicPaymentDetails = function () {
   // Check if user allows sharing payment details
   if (!this.profileSettings || !this.profileSettings.showPaymentDetails) {
     return null;
@@ -230,28 +228,28 @@ userSchema.methods.getPublicPaymentDetails = function() {
 
   // Return only the payment details that exist and are not empty strings
   const publicDetails = {};
-  
+
   if (this.paymentDetails?.upiId && this.paymentDetails.upiId.trim() !== '') {
     publicDetails.upiId = this.paymentDetails.upiId;
   }
-  
+
   if (this.paymentDetails?.qrCodeUrl && this.paymentDetails.qrCodeUrl.trim() !== '') {
     publicDetails.qrCodeUrl = this.paymentDetails.qrCodeUrl;
   }
-  
+
   if (this.paymentDetails?.accountHolderName && this.paymentDetails.accountHolderName.trim() !== '') {
     publicDetails.accountHolderName = this.paymentDetails.accountHolderName;
   }
-  
+
   if (this.paymentDetails?.accountNumber && this.paymentDetails.accountNumber.trim() !== '') {
     // For security, show only last 4 digits
     publicDetails.accountNumber = `****${this.paymentDetails.accountNumber.slice(-4)}`;
   }
-  
+
   if (this.paymentDetails?.ifscCode && this.paymentDetails.ifscCode.trim() !== '') {
     publicDetails.ifscCode = this.paymentDetails.ifscCode;
   }
-  
+
   if (this.paymentDetails?.bankName && this.paymentDetails.bankName.trim() !== '') {
     publicDetails.bankName = this.paymentDetails.bankName;
   }
@@ -261,7 +259,7 @@ userSchema.methods.getPublicPaymentDetails = function() {
 };
 
 // NEW: Method to update last active timestamp
-userSchema.methods.updateLastActive = function() {
+userSchema.methods.updateLastActive = function () {
   this.lastActive = new Date();
   return this.save();
 };

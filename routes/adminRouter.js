@@ -4,23 +4,24 @@ const router = express.Router();
 const auth = require('../middlewares/auth');
 const allowRoles = require('../middlewares/allowRoles');
 
-const { 
-  getAllMembers, 
-  getAllAdmins, 
+const {
+  getAllMembers,
+  getAllAdmins,
   updateUserRole,
   updateCourseAccess,
   updateUserLevels,
-  updateUserStatus  // ✅ ADD THIS - the missing function
+  updateUserStatus,
+  getAllUsers
 } = require('../controllers/adminController');
 
-router.get('/members', auth, allowRoles(['admin']), getAllMembers);
-router.get('/admins', auth, allowRoles(['admin']), getAllAdmins);
+router.get('/users', auth, allowRoles('admin', 'superadmin'), getAllUsers);
 
-router.put('/users/:userId/role', auth, allowRoles(['admin']), updateUserRole);
-router.put('/users/:userId/access', auth, allowRoles(['admin']), updateCourseAccess);
-router.put('/users/:userId/levels', auth, allowRoles(['admin']), updateUserLevels);
+router.get('/members', auth, allowRoles('admin', 'superadmin'), getAllMembers);
+router.get('/admins', auth, allowRoles('admin', 'superadmin'), getAllAdmins);
 
-// ✅ ADD THIS ROUTE - the missing status update route
-router.put('/users/:userId/status', auth, allowRoles(['admin']), updateUserStatus);
+router.put('/users/:userId/role', auth, allowRoles('admin', 'superadmin'), updateUserRole);
+router.put('/users/:userId/access', auth, allowRoles('admin', 'superadmin'), updateCourseAccess);
+router.put('/users/:userId/levels', auth, allowRoles('admin', 'superadmin'), updateUserLevels);
+router.put('/users/:userId/status', auth, allowRoles('admin', 'superadmin'), updateUserStatus);
 
 module.exports = router;

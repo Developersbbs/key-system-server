@@ -35,6 +35,23 @@ exports.getAllAdmins = async (req, res) => {
 };
 
 /**
+ * @desc    Get all users (admins and members) for selection
+ * @route   GET /api/admin/users
+ * @access  Admin
+ */
+exports.getAllUsers = async (req, res) => {
+  try {
+    const users = await User.find({})
+      .select('name email role')
+      .sort({ name: 1 });
+    res.status(200).json(users);
+  } catch (err) {
+    console.error('Error fetching all users:', err);
+    res.status(500).json({ message: 'Server Error' });
+  }
+};
+
+/**
  * @desc    Update a user's role
  * @route   PUT /api/admin/users/:userId/role
  * @access  Admin
@@ -54,7 +71,7 @@ exports.updateUserRole = async (req, res) => {
     }
 
     if (req.user._id.toString() === userToUpdate._id.toString() && role === 'member') {
-        return res.status(400).json({ message: 'Admins cannot demote themselves.' });
+      return res.status(400).json({ message: 'Admins cannot demote themselves.' });
     }
 
     userToUpdate.role = role;
@@ -83,7 +100,7 @@ exports.updateCourseAccess = async (req, res) => {
     if (!courseId || typeof hasAccess !== 'boolean') {
       return res.status(400).json({ message: 'Course ID and access status are required.' });
     }
-    
+
     let user;
     if (hasAccess) {
       // Add the courseId to the user's unlockedCourses array (based on your User model)
@@ -161,15 +178,15 @@ exports.updateUserStatus = async (req, res) => {
 
     // Validate status if provided
     if (status && !['active', 'inactive', 'suspended', 'pending'].includes(status)) {
-      return res.status(400).json({ 
-        message: 'Invalid status. Must be one of: active, inactive, suspended, pending' 
+      return res.status(400).json({
+        message: 'Invalid status. Must be one of: active, inactive, suspended, pending'
       });
     }
 
     // Validate isActive if provided
     if (isActive !== undefined && typeof isActive !== 'boolean') {
-      return res.status(400).json({ 
-        message: 'isActive must be a boolean value' 
+      return res.status(400).json({
+        message: 'isActive must be a boolean value'
       });
     }
 
@@ -181,8 +198,8 @@ exports.updateUserStatus = async (req, res) => {
 
     // Prevent admin from deactivating themselves
     if (req.user._id.toString() === userId && (isActive === false || status === 'inactive')) {
-      return res.status(400).json({ 
-        message: 'Admins cannot deactivate themselves' 
+      return res.status(400).json({
+        message: 'Admins cannot deactivate themselves'
       });
     }
 
@@ -190,7 +207,7 @@ exports.updateUserStatus = async (req, res) => {
     if (status !== undefined) {
       user.status = status;
     }
-    
+
     if (isActive !== undefined) {
       user.isActive = isActive;
     }

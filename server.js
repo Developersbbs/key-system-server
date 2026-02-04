@@ -18,11 +18,13 @@ const chapterProgressRouter = require('./routes/chapterProgressRouter');
 const eventRouter = require('./routes/eventRouter');
 const meetingRouter = require('./routes/meetingRouter');
 const listingRouter = require('./routes/listingRouter');
-const googleAuthRouter = require('./routes/googleAuthRouter');
+
 const transactionRouter = require('./routes/transactionRouter');
 // const uploadRouter = require('./routes/uploadRouter'); 
 const userRouter = require('./routes/userRouter');
 const announcementRouter = require('./routes/announcementRouter');
+const systemConfigRouter = require('./routes/systemConfigRouter');
+const founderRouter = require('./routes/founderRouter');
 
 // Import Middleware
 const auth = require('./middlewares/auth');
@@ -41,9 +43,9 @@ const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:5174",
   "http://localhost:5001",
-  
+
   "http://localhost:8080",
-  
+
   // Add your actual production frontend URL here
   // Example: "https://your-app.vercel.app"
 ];
@@ -108,11 +110,11 @@ mongoose
 
 // ===== Routes =====
 console.log("🛤️  Registering routes...");
-app.use("/api/auth", authRouter);   
-app.use("/api/admin", adminRouter); 
-app.use("/api/member", memberRouter); 
+app.use("/api/auth", authRouter);
+app.use("/api/admin", adminRouter);
+app.use("/api/member", memberRouter);
 app.use('/api/courses', courseRouter);
-app.use('/api/levels', levelRouter); 
+app.use('/api/levels', levelRouter);
 app.use('/api/batches', batchRouter);
 app.use('/api/events', eventRouter);
 app.use('/api/listings', listingRouter);
@@ -123,7 +125,9 @@ app.use('/api/chapters/:chapterId/mcqs', mcqRoutes);
 // app.use('/api/uploads', uploadRouter); // ✅ Only this line for uploads
 app.use('/api/users', userRouter);
 app.use('/api/announcements', announcementRouter); // ✅ Add this line
-app.use('/api/auth/google', googleAuthRouter);
+app.use('/api/system-config', systemConfigRouter);
+app.use('/api/founders', founderRouter);
+
 
 // ===== Default Route =====
 app.get("/", (req, res) => {
@@ -147,7 +151,7 @@ app.get("/api/debug/routes", (req, res) => {
 // ===== 404 Handler =====
 app.use((req, res, next) => {
   console.log(`❌ 404 - Route not found: ${req.method} ${req.path}`);
-  res.status(404).json({ 
+  res.status(404).json({
     message: `Route ${req.method} ${req.path} not found`,
     suggestion: "Check if the route is properly registered"
   });
