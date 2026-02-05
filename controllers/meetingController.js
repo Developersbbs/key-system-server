@@ -272,6 +272,7 @@ exports.syncMeetingAttendance = async (req, res) => {
             {
               userName: user.name, // Ensure name is up to date
               joinedAt: new Date(p.join_time),
+              leftAt: p.leave_time ? new Date(p.leave_time) : undefined,
               duration: durationMinutes
             },
             { upsert: true, new: true }

@@ -19,6 +19,9 @@ const meetingLogSchema = new mongoose.Schema({
         type: Date,
         default: Date.now
     },
+    leftAt: {
+        type: Date
+    },
     duration: {
         type: Number, // Duration in minutes
         default: 0
