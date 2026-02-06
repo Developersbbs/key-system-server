@@ -14,4 +14,7 @@ const meetingSchema = new mongoose.Schema({
 
 }, { timestamps: true });
 
+// Index for Leaderboard Performance
+meetingSchema.index({ host: 1, meetingDate: -1 });
+
 module.exports = mongoose.models.Meeting || mongoose.model('Meeting', meetingSchema);

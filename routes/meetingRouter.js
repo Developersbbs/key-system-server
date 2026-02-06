@@ -12,13 +12,16 @@ const {
   generateZoomMeeting,
   saveMom,
   getMom,
-  syncMeetingAttendance
+  syncMeetingAttendance,
+  getLeaderboard
 } = require('../controllers/meetingController');
 
 // Admin routes
+router.get('/leaderboard', auth, getLeaderboard);
+
 router.route('/')
   .get(auth, allowRoles(['admin', 'member']), getAllMeetings)
-  .post(auth, allowRoles(['admin']), createMeeting);
+  .post(auth, allowRoles(['admin', 'member']), createMeeting);
 
 router.route('/:id')
   .delete(auth, allowRoles(['admin']), deleteMeeting);

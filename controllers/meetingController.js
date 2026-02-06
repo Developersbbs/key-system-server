@@ -1,4 +1,5 @@
 const Meeting = require("../models/Meeting");
+const Activity = require("../models/Activity");
 const MeetingLog = require("../models/MeetingLog");
 const MeetingMom = require("../models/MeetingMom");
 const Admin = require("../models/Admin");
@@ -38,14 +39,28 @@ exports.createMeeting = async (req, res) => {
 };
 
 // --- GET ALL MEETINGS ---
+// --- GET ALL MEETINGS ---
 exports.getAllMeetings = async (req, res) => {
   try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    const totalDocs = await Meeting.countDocuments();
     const meetings = await Meeting.find({})
       .sort({ meetingDate: -1 })
+      .skip(skip)
+      .limit(limit)
       .populate('createdBy', 'name')
       .populate('host', 'name')
       .populate('participants', 'name');
-    res.status(200).json(meetings);
+
+    res.status(200).json({
+      meetings,
+      currentPage: page,
+      totalPages: Math.ceil(totalDocs / limit),
+      totalDocs
+    });
   } catch (err) {
     console.error("Error fetching meetings:", err);
     res.status(500).json({ message: "Server error" });
@@ -291,5 +306,84 @@ exports.syncMeetingAttendance = async (req, res) => {
   } catch (error) {
     console.error("Error syncing attendance:", error);
     return res.status(500).json({ message: "Server error syncing attendance" });
+  }
+};
+
+// --- GET LEADERBOARD ---
+exports.getLeaderboard = async (req, res) => {
+  try {
+    // Parallel Execution: Run both aggregations at once
+    const [meetingCounts, activityCounts] = await Promise.all([
+      // 1. Get Meeting Counts (Weight: 20)
+      Meeting.aggregate([
+        { $match: { meetingDate: { $lte: new Date() } } },
+        { $group: { _id: "$host", count: { $sum: 1 } } }
+      ]),
+      // 2. Get Activity Counts (Weight: 5)
+      Activity.aggregate([
+        { $group: { _id: "$user", count: { $sum: 1 } } }
+      ])
+    ]);
+
+    // 3. Create a Map to merge scores
+    const userScores = {};
+
+    // Process Meetings
+    meetingCounts.forEach(item => {
+      const userId = item._id ? item._id.toString() : null;
+      if (userId) {
+        if (!userScores[userId]) userScores[userId] = { meetingCount: 0, activityCount: 0, totalScore: 0 };
+        userScores[userId].meetingCount = item.count;
+        userScores[userId].totalScore += (item.count * 20);
+      }
+    });
+
+    // Process Activities
+    activityCounts.forEach(item => {
+      const userId = item._id ? item._id.toString() : null;
+      if (userId) {
+        if (!userScores[userId]) userScores[userId] = { meetingCount: 0, activityCount: 0, totalScore: 0 };
+        userScores[userId].activityCount = item.count;
+        userScores[userId].totalScore += (item.count * 5);
+      }
+    });
+
+    // 4. Sort User IDs by Total Score (Descending)
+    // We do this BEFORE fetching user details to avoid fetching 1000s of unused user docs.
+    const allUserIds = Object.keys(userScores);
+    allUserIds.sort((a, b) => userScores[b].totalScore - userScores[a].totalScore);
+
+    // 5. Pagination / Limit: Only take top 50 for the leaderboard view
+    const topUserIds = allUserIds.slice(0, 50);
+
+    // 6. Fetch User Details ONLY for Top 50
+    const users = await User.find({ _id: { $in: topUserIds } })
+      .select('name email')
+      .lean(); // Use lean() for faster read-only performance
+
+    const userMap = {};
+    users.forEach(u => userMap[u._id.toString()] = u);
+
+    // 7. Construct Final Response
+    const leaderboard = topUserIds.map(userId => {
+      const scores = userScores[userId];
+      const user = userMap[userId];
+
+      if (!user) return null; // Skip if user deleted
+
+      return {
+        _id: userId,
+        name: user.name,
+        email: user.email,
+        meetingCount: scores.meetingCount,
+        activityCount: scores.activityCount,
+        totalScore: scores.totalScore
+      };
+    }).filter(item => item !== null);
+
+    res.status(200).json(leaderboard);
+  } catch (err) {
+    console.error("Error fetching leaderboard:", err);
+    res.status(500).json({ message: "Server error fetching leaderboard" });
   }
 };

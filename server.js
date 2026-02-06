@@ -25,6 +25,7 @@ const userRouter = require('./routes/userRouter');
 const announcementRouter = require('./routes/announcementRouter');
 const systemConfigRouter = require('./routes/systemConfigRouter');
 const founderRouter = require('./routes/founderRouter');
+const toolRouter = require('./routes/toolRouter');
 
 // Import Middleware
 const auth = require('./middlewares/auth');
@@ -127,6 +128,8 @@ app.use('/api/users', userRouter);
 app.use('/api/announcements', announcementRouter); // ✅ Add this line
 app.use('/api/system-config', systemConfigRouter);
 app.use('/api/founders', founderRouter);
+app.use('/api/activities', require('./routes/activityRouter')); // ✅ Activity Routes
+app.use('/api/tools', toolRouter);
 
 
 // ===== Default Route =====
