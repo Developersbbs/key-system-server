@@ -13,7 +13,8 @@ const {
   saveMom,
   getMom,
   syncMeetingAttendance,
-  getLeaderboard
+  getLeaderboard,
+  updateMeeting // Import updateMeeting
 } = require('../controllers/meetingController');
 
 // Admin routes
@@ -24,7 +25,8 @@ router.route('/')
   .post(auth, allowRoles(['admin', 'member']), createMeeting);
 
 router.route('/:id')
-  .delete(auth, allowRoles(['admin']), deleteMeeting);
+  .delete(auth, allowRoles(['admin']), deleteMeeting)
+  .put(auth, allowRoles(['admin']), updateMeeting); // Add PUT route
 
 router.post('/:id/join', auth, joinMeeting);
 router.get('/:id/logs', auth, allowRoles(['admin']), getMeetingLogs);

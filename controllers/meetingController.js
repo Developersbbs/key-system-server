@@ -9,7 +9,7 @@ const zoomService = require('../services/zoomService');
 // --- CREATE MEETING ---
 exports.createMeeting = async (req, res) => {
   try {
-    const { title, description, meetingDate, meetingLink, host, participants, zoomMeetingId } = req.body;
+    const { title, description, meetingDate, meetingLink, host, participants, zoomMeetingId, recordingLink } = req.body;
     const adminUserId = req.user._id;
 
     // Validation
@@ -25,7 +25,9 @@ exports.createMeeting = async (req, res) => {
       host,
       participants,
       createdBy: adminUserId,
-      zoomMeetingId // Save Zoom ID
+      createdBy: adminUserId,
+      zoomMeetingId, // Save Zoom ID
+      recordingLink: recordingLink || '' // Save recording link
     });
 
     const savedMeeting = await newMeeting.save();
@@ -85,6 +87,28 @@ exports.getMemberMeetings = async (req, res) => {
   } catch (err) {
     console.error("Error fetching member meetings:", err);
     res.status(500).json({ message: 'Server Error' });
+  }
+};
+
+// --- UPDATE MEETING ---
+exports.updateMeeting = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updateData = req.body;
+
+    const meeting = await Meeting.findByIdAndUpdate(id, updateData, { new: true })
+      .populate('createdBy', 'name')
+      .populate('host', 'name')
+      .populate('participants', 'name');
+
+    if (!meeting) {
+      return res.status(404).json({ message: "Meeting not found" });
+    }
+
+    res.json(meeting);
+  } catch (err) {
+    console.error("Error updating meeting:", err);
+    res.status(500).json({ message: "Server error", error: err.message });
   }
 };
 

@@ -10,7 +10,8 @@ const meetingSchema = new mongoose.Schema({
   // ✅ NEW FIELDS
   zoomMeetingId: { type: String }, // Store Zoom's internal Meeting ID
   host: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-  participants: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }]
+  participants: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  recordingLink: { type: String } // ✅ NEW FIELD: Link to the recorded session
 
 }, { timestamps: true });
 
