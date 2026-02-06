@@ -44,6 +44,10 @@ const founderSchema = new mongoose.Schema({
         type: String,
         default: ''
     },
+    videoUrl: {
+        type: String,
+        default: ''
+    },
     socialLinks: {
         linkedin: String,
         twitter: String,

@@ -40,6 +40,19 @@ exports.getUserActivities = async (req, res) => {
     }
 };
 
+// Get activities for a specific user (public)
+exports.getUserActivitiesById = async (req, res) => {
+    try {
+        const { userId } = req.params;
+        const activities = await Activity.find({ user: userId })
+            .sort({ date: -1 }); // Newest first
+        res.status(200).json(activities);
+    } catch (err) {
+        console.error('Error fetching activities:', err);
+        res.status(500).json({ message: 'Server error fetching activities' });
+    }
+};
+
 // Delete an activity
 exports.deleteActivity = async (req, res) => {
     try {

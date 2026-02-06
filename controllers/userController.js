@@ -15,6 +15,23 @@ exports.getProfile = async (req, res) => {
   }
 };
 
+// Get public profile (for specific user ID)
+exports.getPublicProfile = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = await User.findById(id).select('name email chapter imageUrl designation state district');
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.status(200).json(user);
+  } catch (err) {
+    console.error('Error fetching public profile:', err);
+    res.status(500).json({ message: 'Server Error' });
+  }
+};
+
 // Update payment details
 exports.updatePaymentDetails = async (req, res) => {
   try {
@@ -83,6 +100,35 @@ exports.updateProfileSettings = async (req, res) => {
   } catch (err) {
     console.error('Error updating profile settings:', err);
     res.status(500).json({ message: 'Server Error' });
+  }
+};
+
+// Update profile image
+exports.updateProfileImage = async (req, res) => {
+  try {
+    const { imageUrl } = req.body;
+
+    if (!imageUrl) {
+      return res.status(400).json({ message: 'Image URL is required' });
+    }
+
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    user.imageUrl = imageUrl;
+    await user.save();
+
+    const updatedUser = await User.findById(user._id);
+    res.status(200).json({
+      message: 'Profile image updated successfully',
+      user: updatedUser
+    });
+
+  } catch (err) {
+    console.error('Error updating profile image:', err);
+    res.status(500).json({ message: 'Server Error', error: err.message });
   }
 };
 

@@ -19,6 +19,10 @@ const userSchema = new mongoose.Schema({
     required: true,
     unique: true,
   },
+  imageUrl: {
+    type: String,
+    default: ''
+  },
   role: {
     type: String,
     enum: ['member', 'admin'],

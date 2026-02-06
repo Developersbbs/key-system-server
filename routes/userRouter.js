@@ -9,6 +9,7 @@ const User = require('../models/User');
 const userController = require('../controllers/userController');
 const {
   getProfile,
+  getPublicProfile,
   updatePaymentDetails,
   updateProfileSettings,
   getSellerPaymentDetails
@@ -36,6 +37,18 @@ if (typeof updatePaymentDetails === 'function') {
 // --- Update profile settings ---
 if (typeof updateProfileSettings === 'function') {
   router.put('/profile-settings', auth, allowRoles(['member', 'admin']), updateProfileSettings);
+}
+
+// --- Update profile image ---
+if (typeof userController.updateProfileImage === 'function') {
+  router.put('/profile-image', auth, allowRoles(['member', 'admin']), userController.updateProfileImage);
+}
+
+// --- Get public profile ---
+if (typeof getPublicProfile === 'function') {
+  router.get('/:id/public-profile', auth, getPublicProfile);
+} else {
+  console.warn('getPublicProfile not found in userController');
 }
 
 // --- Get seller payment details (buyer view) ---
