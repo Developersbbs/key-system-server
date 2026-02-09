@@ -1,10 +1,9 @@
 const Chapter = require('../models/Chapter');
 const Course = require('../models/Course');
 const Mcq = require('../models/Mcq');
+const User = require('../models/User');
 
-// AWS SDK for S3 signed URLs
-const { S3Client, GetObjectCommand } = require('@aws-sdk/client-s3');
-const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
+
 
 const chapterController = {
   /**
@@ -16,7 +15,7 @@ const chapterController = {
     try {
       const { courseId } = req.params;
       const course = await Course.findById(courseId);
-      
+
       if (!course) {
         return res.status(404).json({ message: 'Course not found' });
       }
@@ -31,7 +30,7 @@ const chapterController = {
         mcqs: [], // Initialize as empty array
         tasks: tasks || []
       });
-      
+
       const savedChapter = await newChapter.save();
 
       // Create MCQs separately and get their IDs
@@ -46,12 +45,12 @@ const chapterController = {
         });
 
         const savedMcqs = await Promise.all(mcqPromises);
-        
+
         // Update chapter with MCQ references
         savedChapter.mcqs = savedMcqs.map(mcq => mcq._id);
         await savedChapter.save();
       }
-      
+
       // Add chapter reference to course
       course.chapters.push(savedChapter._id);
       await course.save();
@@ -74,7 +73,7 @@ const chapterController = {
     try {
       const { courseId } = req.params;
       const chapters = await Chapter.find({ courseId }).populate('mcqs');
-      
+
       res.status(200).json(chapters);
     } catch (err) {
       console.error('Error getting all chapters:', err);
@@ -91,7 +90,7 @@ const chapterController = {
     try {
       const { chapterId } = req.params;
       const chapter = await Chapter.findById(chapterId).populate('mcqs');
-      
+
       if (!chapter) {
         return res.status(404).json({ message: 'Chapter not found' });
       }
@@ -115,11 +114,11 @@ const chapterController = {
 
       // Update chapter basic data first
       const updatedChapter = await Chapter.findByIdAndUpdate(
-        chapterId, 
-        { ...chapterData, tasks: tasks || [] }, 
+        chapterId,
+        { ...chapterData, tasks: tasks || [] },
         { new: true }
       );
-      
+
       if (!updatedChapter) {
         return res.status(404).json({ message: 'Chapter not found' });
       }
@@ -141,7 +140,7 @@ const chapterController = {
           });
 
           const savedMcqs = await Promise.all(mcqPromises);
-          
+
           // Update chapter with new MCQ references
           updatedChapter.mcqs = savedMcqs.map(mcq => mcq._id);
           await updatedChapter.save();
@@ -169,23 +168,23 @@ const chapterController = {
   deleteChapter: async (req, res) => {
     try {
       const { chapterId } = req.params;
-      
+
       const chapter = await Chapter.findById(chapterId);
       if (!chapter) {
         return res.status(404).json({ message: 'Chapter not found' });
       }
-      
+
       // Remove chapter reference from course
       await Course.findByIdAndUpdate(
         chapter.courseId,
         { $pull: { chapters: chapterId } }
       );
-      
+
       // Delete all MCQs associated with this chapter
       await Mcq.deleteMany({ chapterId });
-      
+
       await Chapter.findByIdAndDelete(chapterId);
-      
+
       res.status(200).json({ message: 'Chapter deleted successfully' });
     } catch (err) {
       console.error('Error deleting chapter:', err);
@@ -202,61 +201,127 @@ const chapterController = {
     try {
       const { chapterId } = req.params;
 
-      console.log(`📥 Request for video URL for chapter: ${chapterId}`);
-
       // Fetch chapter
       const chapter = await Chapter.findById(chapterId);
       if (!chapter || !chapter.videoUrl) {
-        console.log(`❌ Chapter ${chapterId} not found or has no video URL`);
         return res.status(404).json({ message: 'Video not found for this chapter.' });
       }
 
-      // Extract S3 key from videoUrl
-      const urlParts = chapter.videoUrl.split('.amazonaws.com/');
-      if (urlParts.length < 2) {
-        console.log(`❌ Invalid video URL format: ${chapter.videoUrl}`);
-        return res.status(400).json({ message: 'Invalid video URL stored for this chapter.' });
-      }
-
-      let key = urlParts[1]; // e.g., videos/filename.mp4
-      if (key.startsWith('/')) {
-        key = key.substring(1); // Remove leading slash
-      }
-
-      const bucketName = process.env.AWS_S3_BUCKET_NAME;
-      if (!bucketName) {
-        console.log("❌ S3 bucket name not configured");
-        return res.status(500).json({ message: 'AWS S3 bucket name not configured' });
-      }
-
-      // Initialize S3 client
-      const s3Client = new S3Client({
-        region: process.env.AWS_S3_REGION,
-        credentials: {
-          accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-          secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-        },
-      });
-
-      const command = new GetObjectCommand({
-        Bucket: bucketName,
-        Key: key,
-      });
-
-      const signedUrl = await getSignedUrl(s3Client, command, { expiresIn: 3600 }); // 1 hour
-
-      console.log("✅ Presigned GET URL generated successfully");
-      res.status(200).json({ videoUrl: signedUrl });
+      // Directly return the stored URL (Firebase or other)
+      // Since the user is moving away from S3 signing
+      res.status(200).json({ videoUrl: chapter.videoUrl });
 
     } catch (err) {
-      console.error("❌ Error generating presigned GET URL:", err);
-      if (err.name === 'NoSuchKey') {
-        return res.status(404).json({ message: 'The requested video file was not found in storage.' });
-      }
-      res.status(500).json({ 
-        message: 'Failed to generate video access link.', 
-        error: err.message 
+      console.error("❌ Error retrieving video URL:", err);
+      res.status(500).json({
+        message: 'Failed to retrieve video access link.',
+        error: err.message
       });
+    }
+  },
+
+  /**
+   * @desc    Update video watch progress
+   * @route   POST /api/courses/:courseId/chapters/:chapterId/progress
+   * @access  Private
+   */
+  updateVideoProgress: async (req, res) => {
+    try {
+      const { chapterId } = req.params;
+      const { watchedDuration, totalDuration } = req.body;
+      const userId = req.user._id;
+
+      let user = await User.findById(userId);
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+
+      // Ensure videoProgress array exists
+      if (!user.videoProgress) {
+        user.videoProgress = [];
+      }
+
+      // Find if progress exists for this chapter
+      const progressIndex = user.videoProgress.findIndex(p => p.chapterId && p.chapterId.toString() === chapterId);
+
+      if (progressIndex > -1) {
+        // Update existing progress only if new duration is greater (max watched)
+        const currentProgress = user.videoProgress[progressIndex];
+
+        // Only update if watched more (prevent rewinding progress)
+        if (watchedDuration > currentProgress.watchedDuration) {
+          currentProgress.watchedDuration = watchedDuration;
+        }
+
+        // Always update these
+        currentProgress.totalDuration = totalDuration || currentProgress.totalDuration;
+        currentProgress.lastWatchedAt = new Date();
+
+        // Mark as completed if > 90%
+        if (totalDuration > 0 && (currentProgress.watchedDuration / totalDuration) > 0.9) {
+          currentProgress.completed = true;
+        }
+
+        user.videoProgress[progressIndex] = currentProgress;
+      } else {
+        // Add new progress
+        user.videoProgress.push({
+          chapterId,
+          watchedDuration: watchedDuration || 0,
+          totalDuration: totalDuration || 0,
+          lastWatchedAt: new Date(),
+          completed: false
+        });
+      }
+
+      await user.save();
+
+      const savedProgress = user.videoProgress.find(p => p.chapterId && p.chapterId.toString() === chapterId);
+      res.status(200).json({ success: true, progress: savedProgress });
+
+    } catch (err) {
+      console.error("Error updating video progress:", err);
+      res.status(500).json({ message: 'Server error updating progress' });
+    }
+  },
+
+  /**
+   * @desc    Get video watch progress
+   * @route   GET /api/courses/:courseId/chapters/:chapterId/progress
+   * @access  Private
+   */
+  getVideoProgress: async (req, res) => {
+    try {
+      const { chapterId } = req.params;
+      const userId = req.user._id;
+
+      const user = await User.findById(userId);
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+
+      // Initialize if undefined
+      if (!user.videoProgress) {
+        return res.status(200).json({ watchedDuration: 0, completed: false });
+      }
+
+      const progress = user.videoProgress.find(p => {
+        try {
+          return p.chapterId && p.chapterId.toString() === chapterId;
+        } catch (e) {
+          return false;
+        }
+      });
+
+      if (!progress) {
+        return res.status(200).json({ watchedDuration: 0, completed: false });
+      }
+
+      res.status(200).json(progress);
+
+    } catch (err) {
+      console.error("Error fetching video progress:", err);
+      res.status(500).json({ message: 'Server error fetching progress', error: err.message });
     }
   }
 };

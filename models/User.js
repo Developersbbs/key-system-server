@@ -110,6 +110,15 @@ const userSchema = new mongoose.Schema({
     }
   }],
 
+  // ✅ NEW: Video Progress Tracking
+  videoProgress: [{
+    chapterId: { type: mongoose.Schema.Types.ObjectId, ref: 'Chapter' },
+    watchedDuration: { type: Number, default: 0 }, // max seconds watched
+    totalDuration: { type: Number, default: 0 },
+    lastWatchedAt: { type: Date, default: Date.now },
+    completed: { type: Boolean, default: false }
+  }],
+
   // ENHANCED: Payment details for marketplace
   paymentDetails: {
     upiId: {

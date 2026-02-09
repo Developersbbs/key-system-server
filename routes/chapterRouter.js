@@ -25,4 +25,9 @@ router
 // Get a presigned URL to play the video
 router.get('/:chapterId/video-url', auth, chapterController.getVideoUrl);
 
+// ✅ Routes for Video Progress
+router.route('/:chapterId/progress')
+  .post(auth, chapterController.updateVideoProgress)
+  .get(auth, chapterController.getVideoProgress);
+
 module.exports = router;

@@ -33,7 +33,7 @@
 //   const missing = [];
 //   if (!AWS_ACCESS_KEY_ID) missing.push('AWS_ACCESS_KEY_ID');
 //   if (!AWS_SECRET_ACCESS_KEY) missing.push('AWS_SECRET_ACCESS_KEY');
-  
+
 //   console.error('❌ Missing critical AWS credentials:', missing);
 //   throw new Error(`Missing critical AWS credentials: ${missing.join(', ')}`);
 // }
@@ -58,9 +58,9 @@
 // exports.generateQRCodeUrl = async (req, res) => {
 //   try {
 //     console.log('📤 QR Code upload request:', req.body);
-    
+
 //     const { fileName, fileType, fileSize } = req.body;
-    
+
 //     // Validation
 //     if (!fileName || !fileType) {
 //       return res.status(400).json({ 
@@ -128,7 +128,7 @@
 // exports.generatePaymentProofUrl = async (req, res) => {
 //   try {
 //     const { fileName, fileType, fileSize } = req.body;
-    
+
 //     if (!fileName || !fileType) {
 //       return res.status(400).json({ message: "File name and type are required" });
 //     }
@@ -169,7 +169,7 @@
 // exports.generateVideoUploadUrl = async (req, res) => {
 //   try {
 //     const { fileName, fileType, fileSize } = req.body;
-    
+
 //     if (!fileName || !fileType) {
 //       return res.status(400).json({ message: "File name and type are required" });
 //     }
@@ -230,4 +230,54 @@
 //   });
 // };
 
-// console.log("✅ Upload controller loaded successfully");
+// // ✅ Meeting Uploads (MOM & Proof)
+exports.generateMeetingUploadUrl = async (req, res) => {
+    try {
+        const { fileName, fileType, fileSize, type } = req.body; // type: 'mom' or 'proof'
+
+        if (!fileName || !fileType || !type) {
+            return res.status(400).json({ message: "File name, type, and upload type are required" });
+        }
+
+        // validate type
+        if (!['mom', 'proof'].includes(type)) {
+            return res.status(400).json({ message: "Invalid upload type" });
+        }
+
+        // File size validation (10MB limit)
+        if (fileSize && fileSize > 10 * 1024 * 1024) {
+            return res.status(400).json({ message: "File size exceeds 10MB limit" });
+        }
+
+        const timestamp = Date.now();
+        const randomString = Math.random().toString(36).substring(2, 15);
+        const sanitizedFileName = fileName.replace(/[^a-zA-Z0-9.-]/g, '_');
+
+        // Folder structure: meeting-moms/ or meeting-proofs/
+        const folder = type === 'mom' ? 'meeting-moms' : 'meeting-proofs';
+        const key = `${folder}/${timestamp}-${randomString}-${sanitizedFileName}`;
+
+        const command = new PutObjectCommand({
+            Bucket: AWS_BUCKET_NAME,
+            Key: key,
+            ContentType: fileType,
+            ...(req.user && {
+                Metadata: {
+                    'uploaded-by': req.user._id.toString(),
+                    'upload-type': `meeting-${type}`
+                }
+            })
+        });
+
+        const uploadUrl = await getSignedUrl(s3, command, { expiresIn: 300 });
+        const finalUrl = `https://${AWS_BUCKET_NAME}.s3.${AWS_REGION}.amazonaws.com/${key}`;
+
+        res.json({ uploadUrl, finalUrl });
+    } catch (err) {
+        console.error("❌ Meeting upload presign error:", err);
+        res.status(500).json({ message: "Failed to generate upload URL" });
+    }
+};
+
+
+console.log("✅ Upload controller loaded successfully");

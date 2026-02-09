@@ -1,0 +1,66 @@
+[2026-02-09T05:12:24.117Z] Error in getVideoProgress: User is not defined
+Stack: ReferenceError: User is not defined
+    at getVideoProgress (/home/sathish-r/Main-Peojects/Key-system/key-system-server/controllers/chapterController.js:340:20)
+    at Layer.handleRequest (/home/sathish-r/Main-Peojects/Key-system/key-system-server/node_modules/router/lib/layer.js:152:17)
+    at next (/home/sathish-r/Main-Peojects/Key-system/key-system-server/node_modules/router/lib/route.js:157:13)
+    at auth (/home/sathish-r/Main-Peojects/Key-system/key-system-server/middlewares/auth.js:41:5)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+[2026-02-09T05:12:24.391Z] Error in getVideoProgress: User is not defined
+Stack: ReferenceError: User is not defined
+    at getVideoProgress (/home/sathish-r/Main-Peojects/Key-system/key-system-server/controllers/chapterController.js:340:20)
+    at Layer.handleRequest (/home/sathish-r/Main-Peojects/Key-system/key-system-server/node_modules/router/lib/layer.js:152:17)
+    at next (/home/sathish-r/Main-Peojects/Key-system/key-system-server/node_modules/router/lib/route.js:157:13)
+    at auth (/home/sathish-r/Main-Peojects/Key-system/key-system-server/middlewares/auth.js:41:5)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+[2026-02-09T05:12:25.403Z] Error in getVideoProgress: User is not defined
+Stack: ReferenceError: User is not defined
+    at getVideoProgress (/home/sathish-r/Main-Peojects/Key-system/key-system-server/controllers/chapterController.js:340:20)
+    at Layer.handleRequest (/home/sathish-r/Main-Peojects/Key-system/key-system-server/node_modules/router/lib/layer.js:152:17)
+    at next (/home/sathish-r/Main-Peojects/Key-system/key-system-server/node_modules/router/lib/route.js:157:13)
+    at auth (/home/sathish-r/Main-Peojects/Key-system/key-system-server/middlewares/auth.js:41:5)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+[2026-02-09T05:12:25.694Z] Error in getVideoProgress: User is not defined
+Stack: ReferenceError: User is not defined
+    at getVideoProgress (/home/sathish-r/Main-Peojects/Key-system/key-system-server/controllers/chapterController.js:340:20)
+    at Layer.handleRequest (/home/sathish-r/Main-Peojects/Key-system/key-system-server/node_modules/router/lib/layer.js:152:17)
+    at next (/home/sathish-r/Main-Peojects/Key-system/key-system-server/node_modules/router/lib/route.js:157:13)
+    at auth (/home/sathish-r/Main-Peojects/Key-system/key-system-server/middlewares/auth.js:41:5)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+[2026-02-09T05:19:38.213Z] Error in getVideoProgress: User is not defined
+Stack: ReferenceError: User is not defined
+    at getVideoProgress (/home/sathish-r/Main-Peojects/Key-system/key-system-server/controllers/chapterController.js:340:20)
+    at Layer.handleRequest (/home/sathish-r/Main-Peojects/Key-system/key-system-server/node_modules/router/lib/layer.js:152:17)
+    at next (/home/sathish-r/Main-Peojects/Key-system/key-system-server/node_modules/router/lib/route.js:157:13)
+    at auth (/home/sathish-r/Main-Peojects/Key-system/key-system-server/middlewares/auth.js:41:5)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+[2026-02-09T05:19:38.493Z] Error in getVideoProgress: User is not defined
+Stack: ReferenceError: User is not defined
+    at getVideoProgress (/home/sathish-r/Main-Peojects/Key-system/key-system-server/controllers/chapterController.js:340:20)
+    at Layer.handleRequest (/home/sathish-r/Main-Peojects/Key-system/key-system-server/node_modules/router/lib/layer.js:152:17)
+    at next (/home/sathish-r/Main-Peojects/Key-system/key-system-server/node_modules/router/lib/route.js:157:13)
+    at auth (/home/sathish-r/Main-Peojects/Key-system/key-system-server/middlewares/auth.js:41:5)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+[2026-02-09T05:19:38.777Z] Error in getVideoProgress: User is not defined
+Stack: ReferenceError: User is not defined
+    at getVideoProgress (/home/sathish-r/Main-Peojects/Key-system/key-system-server/controllers/chapterController.js:340:20)
+    at Layer.handleRequest (/home/sathish-r/Main-Peojects/Key-system/key-system-server/node_modules/router/lib/layer.js:152:17)
+    at next (/home/sathish-r/Main-Peojects/Key-system/key-system-server/node_modules/router/lib/route.js:157:13)
+    at auth (/home/sathish-r/Main-Peojects/Key-system/key-system-server/middlewares/auth.js:41:5)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+[2026-02-09T05:19:39.074Z] Error in getVideoProgress: User is not defined
+Stack: ReferenceError: User is not defined
+    at getVideoProgress (/home/sathish-r/Main-Peojects/Key-system/key-system-server/controllers/chapterController.js:340:20)
+    at Layer.handleRequest (/home/sathish-r/Main-Peojects/Key-system/key-system-server/node_modules/router/lib/layer.js:152:17)
+    at next (/home/sathish-r/Main-Peojects/Key-system/key-system-server/node_modules/router/lib/route.js:157:13)
+    at auth (/home/sathish-r/Main-Peojects/Key-system/key-system-server/middlewares/auth.js:41:5)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+[2026-02-09T07:29:20.329Z] Invalid video URL in getVideoUrl: https://firebasestorage.googleapis.com/v0/b/key-systems-client-98765.firebasestorage.app/o/courses%2F698498a015bc19626375fffb%2Fchapters%2Ftemp%2Fvideos%2F1770297892426_How_the_blockchain_will_radically_transform_the_economy___Bettina_Warburg.mp4?alt=media&token=63bc73b3-f92a-4a2e-8878-f0be5f217d47 (Chapter: 69849a3d15bc196263760001)
+[2026-02-09T07:29:20.621Z] Invalid video URL in getVideoUrl: https://firebasestorage.googleapis.com/v0/b/key-systems-client-98765.firebasestorage.app/o/courses%2F698498a015bc19626375fffb%2Fchapters%2Ftemp%2Fvideos%2F1770297892426_How_the_blockchain_will_radically_transform_the_economy___Bettina_Warburg.mp4?alt=media&token=63bc73b3-f92a-4a2e-8878-f0be5f217d47 (Chapter: 69849a3d15bc196263760001)
+[2026-02-09T07:31:20.164Z] Invalid video URL in getVideoUrl: https://firebasestorage.googleapis.com/v0/b/key-systems-client-98765.firebasestorage.app/o/courses%2F698498a015bc19626375fffb%2Fchapters%2Ftemp%2Fvideos%2F1770297892426_How_the_blockchain_will_radically_transform_the_economy___Bettina_Warburg.mp4?alt=media&token=63bc73b3-f92a-4a2e-8878-f0be5f217d47 (Chapter: 69849a3d15bc196263760001)
+[2026-02-09T07:31:20.456Z] Invalid video URL in getVideoUrl: https://firebasestorage.googleapis.com/v0/b/key-systems-client-98765.firebasestorage.app/o/courses%2F698498a015bc19626375fffb%2Fchapters%2Ftemp%2Fvideos%2F1770297892426_How_the_blockchain_will_radically_transform_the_economy___Bettina_Warburg.mp4?alt=media&token=63bc73b3-f92a-4a2e-8878-f0be5f217d47 (Chapter: 69849a3d15bc196263760001)
+[2026-02-09T07:56:55.345Z] Invalid video URL in getVideoUrl: https://firebasestorage.googleapis.com/v0/b/key-systems-client-98765.firebasestorage.app/o/courses%2F698498a015bc19626375fffb%2Fchapters%2Ftemp%2Fvideos%2F1770297892426_How_the_blockchain_will_radically_transform_the_economy___Bettina_Warburg.mp4?alt=media&token=63bc73b3-f92a-4a2e-8878-f0be5f217d47 (Chapter: 69849a3d15bc196263760001)
+[2026-02-09T07:56:55.636Z] Invalid video URL in getVideoUrl: https://firebasestorage.googleapis.com/v0/b/key-systems-client-98765.firebasestorage.app/o/courses%2F698498a015bc19626375fffb%2Fchapters%2Ftemp%2Fvideos%2F1770297892426_How_the_blockchain_will_radically_transform_the_economy___Bettina_Warburg.mp4?alt=media&token=63bc73b3-f92a-4a2e-8878-f0be5f217d47 (Chapter: 69849a3d15bc196263760001)
+[2026-02-09T07:56:55.992Z] Invalid video URL in getVideoUrl: https://firebasestorage.googleapis.com/v0/b/key-systems-client-98765.firebasestorage.app/o/courses%2F698498a015bc19626375fffb%2Fchapters%2Ftemp%2Fvideos%2F1770297892426_How_the_blockchain_will_radically_transform_the_economy___Bettina_Warburg.mp4?alt=media&token=63bc73b3-f92a-4a2e-8878-f0be5f217d47 (Chapter: 69849a3d15bc196263760001)
+[2026-02-09T07:56:56.268Z] Invalid video URL in getVideoUrl: https://firebasestorage.googleapis.com/v0/b/key-systems-client-98765.firebasestorage.app/o/courses%2F698498a015bc19626375fffb%2Fchapters%2Ftemp%2Fvideos%2F1770297892426_How_the_blockchain_will_radically_transform_the_economy___Bettina_Warburg.mp4?alt=media&token=63bc73b3-f92a-4a2e-8878-f0be5f217d47 (Chapter: 69849a3d15bc196263760001)
+[2026-02-09T07:57:07.483Z] Invalid video URL in getVideoUrl: https://firebasestorage.googleapis.com/v0/b/key-systems-client-98765.firebasestorage.app/o/courses%2F698498a015bc19626375fffb%2Fchapters%2Ftemp%2Fvideos%2F1770297892426_How_the_blockchain_will_radically_transform_the_economy___Bettina_Warburg.mp4?alt=media&token=63bc73b3-f92a-4a2e-8878-f0be5f217d47 (Chapter: 69849a3d15bc196263760001)
+[2026-02-09T07:57:07.769Z] Invalid video URL in getVideoUrl: https://firebasestorage.googleapis.com/v0/b/key-systems-client-98765.firebasestorage.app/o/courses%2F698498a015bc19626375fffb%2Fchapters%2Ftemp%2Fvideos%2F1770297892426_How_the_blockchain_will_radically_transform_the_economy___Bettina_Warburg.mp4?alt=media&token=63bc73b3-f92a-4a2e-8878-f0be5f217d47 (Chapter: 69849a3d15bc196263760001)

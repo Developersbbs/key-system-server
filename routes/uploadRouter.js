@@ -79,7 +79,7 @@
 //       });
 //     }
 //   });
-  
+
 //   res.json({
 //     message: "Upload router debug info",
 //     registeredRoutes: routes,
@@ -90,4 +90,7 @@
 
 // console.log("✅ Upload router configured successfully");
 
-// module.exports = router;
+// // Meeting Uploads
+router.post('/meeting-upload', protect, uploadController.generateMeetingUploadUrl);
+
+module.exports = router;

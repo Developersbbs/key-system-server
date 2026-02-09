@@ -27,7 +27,9 @@ exports.createMeeting = async (req, res) => {
       createdBy: adminUserId,
       createdBy: adminUserId,
       zoomMeetingId, // Save Zoom ID
-      recordingLink: recordingLink || '' // Save recording link
+      recordingLink: recordingLink || '', // Save recording link
+      momLink: req.body.momLink || '',
+      engagementProof: req.body.engagementProof || ''
     });
 
     const savedMeeting = await newMeeting.save();
