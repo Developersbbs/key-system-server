@@ -7,6 +7,13 @@ const meetingSchema = new mongoose.Schema({
   meetingDate: { type: Date, required: true },
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
 
+  // Meeting Type
+  meetingType: {
+    type: String,
+    enum: ['zoom', 'manual', 'in-person'],
+    default: 'manual'
+  },
+
   // ✅ NEW FIELDS
   zoomMeetingId: { type: String }, // Store Zoom's internal Meeting ID
   host: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },

@@ -20,7 +20,7 @@ const meetingRouter = require('./routes/meetingRouter');
 const listingRouter = require('./routes/listingRouter');
 
 const transactionRouter = require('./routes/transactionRouter');
-// const uploadRouter = require('./routes/uploadRouter'); 
+const uploadRouter = require('./routes/uploadRouter');
 const userRouter = require('./routes/userRouter');
 const announcementRouter = require('./routes/announcementRouter');
 const systemConfigRouter = require('./routes/systemConfigRouter');
@@ -123,7 +123,7 @@ app.use('/api/meetings', meetingRouter);
 app.use('/api/transactions', transactionRouter);
 app.use('/api/chapters', chapterProgressRouter);
 app.use('/api/chapters/:chapterId/mcqs', mcqRoutes);
-// app.use('/api/uploads', uploadRouter); // ✅ Only this line for uploads
+app.use('/api/upload', uploadRouter); // Upload routes for meeting photos, MOM, etc.
 app.use('/api/users', userRouter);
 app.use('/api/announcements', announcementRouter); // ✅ Add this line
 app.use('/api/system-config', systemConfigRouter);

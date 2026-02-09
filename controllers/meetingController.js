@@ -9,7 +9,7 @@ const zoomService = require('../services/zoomService');
 // --- CREATE MEETING ---
 exports.createMeeting = async (req, res) => {
   try {
-    const { title, description, meetingDate, meetingLink, host, participants, zoomMeetingId, recordingLink } = req.body;
+    const { title, description, meetingDate, meetingLink, host, participants, zoomMeetingId, recordingLink, meetingType } = req.body;
     const adminUserId = req.user._id;
 
     // Validation
@@ -17,14 +17,20 @@ exports.createMeeting = async (req, res) => {
       return res.status(400).json({ message: "Title, Date, and Link are required." });
     }
 
+    // Auto-detect meeting type if not provided
+    let finalMeetingType = meetingType || 'manual';
+    if (!meetingType && zoomMeetingId) {
+      finalMeetingType = 'zoom';
+    }
+
     const newMeeting = new Meeting({
       title,
       description: description || '',
       meetingDate,
       meetingLink,
+      meetingType: finalMeetingType,
       host,
       participants,
-      createdBy: adminUserId,
       createdBy: adminUserId,
       zoomMeetingId, // Save Zoom ID
       recordingLink: recordingLink || '', // Save recording link
@@ -411,5 +417,51 @@ exports.getLeaderboard = async (req, res) => {
   } catch (err) {
     console.error("Error fetching leaderboard:", err);
     res.status(500).json({ message: "Server error fetching leaderboard" });
+  }
+};
+
+// --- UPLOAD ATTENDANCE PHOTO ---
+exports.uploadAttendancePhoto = async (req, res) => {
+  try {
+    const { id } = req.params; // Meeting ID
+    const userId = req.user._id;
+    const userName = req.user.name;
+    const { photoUrl } = req.body;
+
+    if (!photoUrl) {
+      return res.status(400).json({ message: "Photo URL is required" });
+    }
+
+    // Verify meeting exists
+    const meeting = await Meeting.findById(id);
+    if (!meeting) {
+      return res.status(404).json({ message: "Meeting not found" });
+    }
+
+    // Verify user is a participant
+    const isParticipant = meeting.participants.some(p => p.toString() === userId.toString());
+    if (!isParticipant) {
+      return res.status(403).json({ message: "You are not a participant of this meeting" });
+    }
+
+    // Create or update MeetingLog with photo
+    const log = await MeetingLog.findOneAndUpdate(
+      { meetingId: id, userId: userId },
+      {
+        userName: userName,
+        attendanceProof: photoUrl,
+        joinedAt: new Date() // Mark attendance time
+      },
+      { upsert: true, new: true }
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: 'Attendance photo uploaded successfully',
+      data: log
+    });
+  } catch (error) {
+    console.error("Error uploading attendance photo:", error);
+    return res.status(500).json({ message: "Server error uploading photo" });
   }
 };

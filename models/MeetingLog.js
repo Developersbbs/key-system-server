@@ -25,6 +25,9 @@ const meetingLogSchema = new mongoose.Schema({
     duration: {
         type: Number, // Duration in minutes
         default: 0
+    },
+    attendanceProof: {
+        type: String // URL to uploaded photo for in-person meetings
     }
 }, { timestamps: true });
 

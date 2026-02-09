@@ -1,4 +1,115 @@
-// // controllers/uploadController.js
+const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
+const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
+
+// Get environment variables with fallbacks
+const getEnvVar = (primaryKey, fallbackKey, defaultValue = null) => {
+    return process.env[primaryKey] || process.env[fallbackKey] || defaultValue;
+};
+
+// Get environment variables
+const AWS_REGION = getEnvVar('AWS_S3_REGION', 'AWS_REGION', 'us-east-1');
+const AWS_BUCKET_NAME = getEnvVar('AWS_S3_BUCKET_NAME', 'AWS_BUCKET_NAME', 'keysystems123');
+const AWS_ACCESS_KEY_ID = getEnvVar('AWS_ACCESS_KEY_ID', null);
+const AWS_SECRET_ACCESS_KEY = getEnvVar('AWS_SECRET_ACCESS_KEY', null);
+
+console.log("Upload Controller - Resolved environment variables:");
+console.log("Region:", AWS_REGION);
+console.log("Bucket:", AWS_BUCKET_NAME);
+console.log("Access Key:", AWS_ACCESS_KEY_ID ? "Present" : "Missing");
+console.log("Secret Key:", AWS_SECRET_ACCESS_KEY ? "Present" : "Missing");
+
+// Initialize S3 client
+let s3;
+if (AWS_ACCESS_KEY_ID && AWS_SECRET_ACCESS_KEY) {
+    try {
+        s3 = new S3Client({
+            region: AWS_REGION,
+            credentials: {
+                accessKeyId: AWS_ACCESS_KEY_ID,
+                secretAccessKey: AWS_SECRET_ACCESS_KEY,
+            },
+        });
+        console.log("✅ S3 Client initialized successfully");
+    } catch (error) {
+        console.error("❌ Failed to initialize S3 client:", error);
+    }
+} else {
+    console.warn("⚠️ AWS credentials not configured. Upload functionality will be limited.");
+}
+
+// Meeting Uploads (MOM, Proof, Attendance Photos)
+exports.generateMeetingUploadUrl = async (req, res) => {
+    try {
+        const { fileName, fileType, fileSize, type } = req.body; // type: 'mom', 'proof', or 'attendance'
+
+        if (!fileName || !fileType || !type) {
+            return res.status(400).json({ message: "File name, type, and upload type are required" });
+        }
+
+        // Validate type
+        if (!['mom', 'proof', 'attendance'].includes(type)) {
+            return res.status(400).json({ message: "Invalid upload type. Must be 'mom', 'proof', or 'attendance'" });
+        }
+
+        // File size validation (10MB limit)
+        if (fileSize && fileSize > 10 * 1024 * 1024) {
+            return res.status(400).json({ message: "File size exceeds 10MB limit" });
+        }
+
+        // Validate file type for attendance photos
+        if (type === 'attendance' && !fileType.startsWith('image/')) {
+            return res.status(400).json({ message: "Attendance photos must be image files" });
+        }
+
+        const timestamp = Date.now();
+        const randomString = Math.random().toString(36).substring(2, 15);
+        const sanitizedFileName = fileName.replace(/[^a-zA-Z0-9.-]/g, '_');
+
+        // Folder structure based on type
+        const folderMap = {
+            'mom': 'meeting-moms',
+            'proof': 'meeting-proofs',
+            'attendance': 'attendance-photos'
+        };
+        const folder = folderMap[type];
+        const key = `${folder}/${timestamp}-${randomString}-${sanitizedFileName}`;
+
+        if (!s3) {
+            return res.status(500).json({ message: "S3 client not initialized. Please configure AWS credentials." });
+        }
+
+        const command = new PutObjectCommand({
+            Bucket: AWS_BUCKET_NAME,
+            Key: key,
+            ContentType: fileType,
+            ...(req.user && {
+                Metadata: {
+                    'uploaded-by': req.user._id.toString(),
+                    'upload-type': `meeting-${type}`
+                }
+            })
+        });
+
+        const uploadUrl = await getSignedUrl(s3, command, { expiresIn: 300 }); // 5 minutes
+        const finalUrl = `https://${AWS_BUCKET_NAME}.s3.${AWS_REGION}.amazonaws.com/${key}`;
+
+        res.json({
+            uploadUrl,
+            finalUrl,
+            success: true,
+            message: 'Presigned URL generated successfully'
+        });
+    } catch (err) {
+        console.error("❌ Meeting upload presign error:", err);
+        res.status(500).json({
+            message: "Failed to generate upload URL",
+            error: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error'
+        });
+    }
+};
+
+console.log("✅ Upload controller loaded successfully");
+
 // console.log("🔧 Loading uploadController...");
 
 // // Debug environment variables at load time
