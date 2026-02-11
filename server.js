@@ -26,6 +26,7 @@ const announcementRouter = require('./routes/announcementRouter');
 const systemConfigRouter = require('./routes/systemConfigRouter');
 const founderRouter = require('./routes/founderRouter');
 const toolRouter = require('./routes/toolRouter');
+const subscriptionRouter = require('./routes/subscriptionRoutes');
 
 // Import Middleware
 const auth = require('./middlewares/auth');
@@ -130,6 +131,7 @@ app.use('/api/system-config', systemConfigRouter);
 app.use('/api/founders', founderRouter);
 app.use('/api/activities', require('./routes/activityRouter')); // ✅ Activity Routes
 app.use('/api/tools', toolRouter);
+app.use('/api/subscriptions', subscriptionRouter); // ✅ Subscription Routes
 
 
 // ===== Default Route =====
@@ -174,3 +176,4 @@ app.listen(PORT, () => {
   console.log(`🔗 Test your upload route: http://localhost:${PORT}/api/uploads/test`);
   console.log(`🔗 Debug routes: http://localhost:${PORT}/api/debug/routes`);
 });
+// Forced restart for config update

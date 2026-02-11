@@ -6,4 +6,7 @@ const uploadController = require('../controllers/uploadController');
 // Meeting upload route - for attendance photos and other meeting-related uploads
 router.post('/meeting-upload', auth, uploadController.generateMeetingUploadUrl);
 
+// System Config upload - qr code etc
+router.post('/system-config', auth, uploadController.generateSystemConfigUploadUrl);
+
 module.exports = router;

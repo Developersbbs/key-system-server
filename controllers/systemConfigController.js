@@ -38,7 +38,16 @@ exports.updateSystemConfig = async (req, res) => {
         if (zoomAccountId !== undefined) config.zoomAccountId = zoomAccountId.trim();
         if (zoomClientId !== undefined) config.zoomClientId = zoomClientId.trim();
         if (zoomClientSecret !== undefined) config.zoomClientSecret = zoomClientSecret.trim();
+        if (zoomClientSecret !== undefined) config.zoomClientSecret = zoomClientSecret.trim();
         if (zoomHostEmail !== undefined) config.zoomHostEmail = zoomHostEmail.trim();
+
+        // Bank Details
+        const { upiId, accountNumber, ifscCode, accountName, qrCodeUrl } = req.body;
+        if (upiId !== undefined) config.upiId = upiId.trim();
+        if (accountNumber !== undefined) config.accountNumber = accountNumber.trim();
+        if (ifscCode !== undefined) config.ifscCode = ifscCode.trim();
+        if (accountName !== undefined) config.accountName = accountName.trim();
+        if (qrCodeUrl !== undefined) config.qrCodeUrl = qrCodeUrl.trim();
 
         await config.save();
 

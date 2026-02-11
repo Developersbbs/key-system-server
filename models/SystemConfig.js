@@ -20,6 +20,28 @@ const systemConfigSchema = new mongoose.Schema({
         default: ''
     },
 
+    // --- Payment Details ---
+    upiId: {
+        type: String,
+        default: ''
+    },
+    accountNumber: {
+        type: String,
+        default: ''
+    },
+    ifscCode: {
+        type: String,
+        default: ''
+    },
+    accountName: {
+        type: String,
+        default: ''
+    },
+    qrCodeUrl: {
+        type: String,
+        default: ''
+    },
+
     // Future configurations can be added here
 }, {
     timestamps: true

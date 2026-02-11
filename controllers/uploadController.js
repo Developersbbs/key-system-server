@@ -90,4 +90,63 @@ exports.generateMeetingUploadUrl = async (req, res) => {
     }
 };
 
+// System Config Uploads (QR Code, etc.)
+exports.generateSystemConfigUploadUrl = async (req, res) => {
+    try {
+        console.log("📤 System config upload request received");
+        const { fileName, fileType, fileSize } = req.body;
+
+        if (!fileName || !fileType) {
+            return res.status(400).json({ message: "File name and type are required" });
+        }
+
+        // Validate file type (images only for now)
+        if (!fileType.startsWith('image/')) {
+            return res.status(400).json({ message: "Only image files are allowed" });
+        }
+
+        // File size validation (5MB max)
+        if (fileSize && fileSize > 5 * 1024 * 1024) {
+            return res.status(400).json({ message: "File size exceeds 5MB limit" });
+        }
+
+        const timestamp = Date.now();
+        const sanitizedFileName = fileName.replace(/[^a-zA-Z0-9.-]/g, '_');
+        const filePath = `system-config/${timestamp}-${sanitizedFileName}`;
+
+        console.log("Generated Firebase Storage path:", filePath);
+
+        const file = bucket.file(filePath);
+
+        // Generate a signed URL for uploading (v4 signing)
+        const [uploadUrl] = await file.getSignedUrl({
+            version: 'v4',
+            action: 'write',
+            expires: Date.now() + 5 * 60 * 1000, // 5 minutes
+            contentType: fileType,
+        });
+
+        // Generate a signed public URL for reading (make it public first in a real scenario, or use signed url)
+        // For simplicity and to match the other controller flow, we'll return a long-lived signed URL or just the storage path
+        // BUT better yet, let's construct the public URL format which we can make public after upload
+        // The standard public URL format is: https://storage.googleapis.com/[BUCKET_NAME]/[FILE_PATH]
+        const finalUrl = `https://storage.googleapis.com/${bucket.name}/${filePath}`;
+
+        res.json({
+            uploadUrl,
+            finalUrl,
+            filePath, // Send this so frontend can request backend to make it public if needed
+            success: true,
+            message: 'Presigned URL generated successfully'
+        });
+
+    } catch (err) {
+        console.error("❌ System config upload presign error:", err);
+        res.status(500).json({
+            message: "Failed to generate upload URL",
+            error: err.message
+        });
+    }
+};
+
 console.log("✅ Upload controller loaded successfully");
