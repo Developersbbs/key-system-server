@@ -10,11 +10,17 @@ async function auth(req, res, next) {
     const authHeader = req.headers.authorization || "";
     const bearer = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
 
+    // Check for token in FormData (sent by sendBeacon)
+    const formToken = req.body?.token;
+
     let decoded;
     if (sessionCookie) {
       decoded = await admin.auth().verifySessionCookie(sessionCookie, true);
     } else if (bearer) {
       decoded = await admin.auth().verifyIdToken(bearer, true);
+    } else if (formToken) {
+      // Handle token from FormData (sendBeacon)
+      decoded = await admin.auth().verifyIdToken(formToken, true);
     } else {
       return res.status(401).json({ message: "Unauthorized: No token" });
     }

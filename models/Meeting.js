@@ -5,6 +5,7 @@ const meetingSchema = new mongoose.Schema({
   description: { type: String, required: true },
   meetingLink: { type: String, required: true },
   meetingDate: { type: Date, required: true },
+  meetingEndTime: { type: Date }, // Optional: When the meeting is scheduled to end
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
 
   // Meeting Type

@@ -89,9 +89,31 @@ exports.getMemberMeetings = async (req, res) => {
       .sort({ meetingDate: -1 })
       .populate('createdBy', 'name')
       .populate('host', 'name')
-      .populate('participants', 'name');
+      .populate('participants', 'name')
+      .lean(); // Use lean() to get plain JS objects
 
-    res.status(200).json(meetings);
+    // Fetch attendance logs for this user for these meetings
+    const meetingIds = meetings.map(m => m._id);
+    const logs = await MeetingLog.find({
+      userId: userId,
+      meetingId: { $in: meetingIds }
+    }).lean();
+
+    // Map logs to meetings
+    const meetingsWithLogs = meetings.map(meeting => {
+      const log = logs.find(l => l.meetingId.toString() === meeting._id.toString());
+      return {
+        ...meeting,
+        attendance: log ? {
+          totalDuration: log.duration,
+          firstJoinedAt: log.joinedAt,
+          lastLeftAt: log.leftAt,
+          sessions: log.joinSessions || []
+        } : null
+      };
+    });
+
+    res.status(200).json(meetingsWithLogs);
   } catch (err) {
     console.error("Error fetching member meetings:", err);
     res.status(500).json({ message: 'Server Error' });
@@ -144,17 +166,164 @@ exports.joinMeeting = async (req, res) => {
       return res.status(404).json({ message: "Meeting not found" });
     }
 
-    await MeetingLog.create({
+    // Check if user is a participant
+    const isParticipant = meeting.participants.some(p => p.toString() === userId.toString());
+    if (!isParticipant) {
+      return res.status(403).json({ message: "You are not a participant of this meeting" });
+    }
+
+    // Check if user already has an attendance log for this meeting
+    let meetingLog = await MeetingLog.findOne({
       meetingId: id,
-      userId: userId,
-      userName: userName,
-      joinedAt: new Date()
+      userId: userId
     });
 
-    return res.status(200).json({ message: "Attendance logged", link: meeting.meetingLink });
+    const currentJoinTime = new Date();
+
+    if (meetingLog) {
+      // User is rejoining - add new session to existing log
+      meetingLog.joinSessions.push({
+        joinedAt: currentJoinTime,
+        leftAt: null,
+        duration: 0
+      });
+
+      // Update the main leftAt to null (user is currently in meeting)
+      meetingLog.leftAt = null;
+
+      await meetingLog.save();
+    } else {
+      // First join - create new attendance log
+      meetingLog = await MeetingLog.create({
+        meetingId: id,
+        userId: userId,
+        userName: userName,
+        joinedAt: currentJoinTime,
+        leftAt: null,
+        duration: 0,
+        joinSessions: [{
+          joinedAt: currentJoinTime,
+          leftAt: null,
+          duration: 0
+        }]
+      });
+    }
+
+    // Determine which link to return based on meeting status
+    const meetingDate = new Date(meeting.meetingDate);
+    const now = new Date();
+    const isPastMeeting = meetingDate < now;
+
+    // For past meetings, prefer recording link if available
+    const linkToReturn = isPastMeeting && meeting.recordingLink
+      ? meeting.recordingLink
+      : meeting.meetingLink;
+
+    return res.status(200).json({
+      message: meetingLog.joinSessions.length > 1 ? "Rejoined meeting - attendance logged" : "Attendance logged",
+      link: linkToReturn,
+      isPastMeeting,
+      hasRecording: !!meeting.recordingLink,
+      sessionCount: meetingLog.joinSessions.length
+    });
   } catch (err) {
     console.error("Error joining meeting:", err);
     return res.status(500).json({ message: "Server error logging attendance" });
+  }
+};
+
+// --- LEAVE MEETING ---
+exports.leaveMeeting = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user._id;
+
+    // Find the meeting log for this user and meeting
+    const meetingLog = await MeetingLog.findOne({
+      meetingId: id,
+      userId: userId
+    });
+
+    if (!meetingLog) {
+      return res.status(404).json({ message: "Meeting log not found" });
+    }
+
+    // Find the most recent session without a leftAt time (active session)
+    const activeSession = meetingLog.joinSessions
+      .reverse()
+      .find(session => !session.leftAt);
+
+    if (!activeSession) {
+      return res.status(400).json({ message: "No active session found" });
+    }
+
+    // Set leave time for the active session
+    const leftAt = new Date();
+    activeSession.leftAt = leftAt;
+
+    // Calculate duration for this session in minutes
+    const joinedAt = new Date(activeSession.joinedAt);
+    const durationMs = leftAt - joinedAt;
+    const sessionDuration = Math.round(durationMs / (1000 * 60));
+    activeSession.duration = sessionDuration;
+
+    // Update total cumulative duration
+    meetingLog.duration = (meetingLog.duration || 0) + sessionDuration;
+
+    // Update the main leftAt to the latest leave time
+    meetingLog.leftAt = leftAt;
+
+    // Reverse back the array to maintain original order
+    meetingLog.joinSessions.reverse();
+
+    await meetingLog.save();
+
+    return res.status(200).json({
+      message: "Leave time recorded",
+      sessionDuration: sessionDuration,
+      totalDuration: meetingLog.duration,
+      sessionCount: meetingLog.joinSessions.length
+    });
+  } catch (err) {
+    console.error("Error recording leave time:", err);
+    return res.status(500).json({ message: "Server error recording leave time" });
+  }
+};
+
+// --- GET MEETING ATTENDANCE DETAILS ---
+exports.getMeetingAttendanceDetails = async (req, res) => {
+  try {
+    const { id, userId } = req.params;
+
+    const meetingLog = await MeetingLog.findOne({
+      meetingId: id,
+      userId: userId
+    });
+
+    if (!meetingLog) {
+      return res.status(404).json({ message: "No attendance record found" });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        userName: meetingLog.userName,
+        firstJoined: meetingLog.joinedAt,
+        lastLeft: meetingLog.leftAt,
+        totalDuration: meetingLog.duration,
+        sessionCount: meetingLog.joinSessions.length,
+        sessions: meetingLog.joinSessions.map((session, index) => ({
+          sessionNumber: index + 1,
+          joinedAt: session.joinedAt,
+          leftAt: session.leftAt,
+          duration: session.duration,
+          status: session.leftAt ? 'Completed' : 'Active'
+        }))
+      }
+    });
+  } catch (err) {
+    console.error("Error fetching attendance details:", err);
+    return res.status(500).json({ message: "Server error fetching attendance details" });
   }
 };
 

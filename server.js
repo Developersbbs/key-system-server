@@ -37,6 +37,7 @@ console.log("🔧 Server starting...");
 
 // ===== Middleware =====
 app.use(express.json({ limit: '10mb' })); // Increase limit if needed for JSON
+app.use(express.urlencoded({ extended: true })); // Parse URL-encoded bodies (FormData from sendBeacon)
 app.use(cookieParser());
 
 const allowedOrigins = [

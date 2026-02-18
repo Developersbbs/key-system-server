@@ -8,14 +8,16 @@ const {
   deleteMeeting,
   getMemberMeetings,
   joinMeeting,
+  leaveMeeting,
   getMeetingLogs,
+  getMeetingAttendanceDetails,
   generateZoomMeeting,
   saveMom,
   getMom,
   syncMeetingAttendance,
   getLeaderboard,
-  updateMeeting, // Import updateMeeting
-  uploadAttendancePhoto // Import uploadAttendancePhoto
+  updateMeeting,
+  uploadAttendancePhoto
 } = require('../controllers/meetingController');
 
 // Admin routes
@@ -30,7 +32,9 @@ router.route('/:id')
   .put(auth, allowRoles(['admin']), updateMeeting); // Add PUT route
 
 router.post('/:id/join', auth, joinMeeting);
+router.post('/:id/leave', auth, leaveMeeting);
 router.get('/:id/logs', auth, allowRoles(['admin']), getMeetingLogs);
+router.get('/:id/attendance/:userId', auth, allowRoles(['admin']), getMeetingAttendanceDetails);
 
 // Sync Attendance
 router.post('/:id/sync', auth, allowRoles(['admin']), syncMeetingAttendance);
