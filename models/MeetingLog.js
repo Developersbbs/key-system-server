@@ -9,7 +9,7 @@ const meetingLogSchema = new mongoose.Schema({
     userId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
-        required: true
+        required: false  // Optional: Zoom participants may not have a matching DB user
     },
     userName: {
         type: String,
@@ -28,6 +28,17 @@ const meetingLogSchema = new mongoose.Schema({
     },
     attendanceProof: {
         type: String // URL to uploaded photo for in-person meetings
+    },
+    // Zoom Verification Fields
+    zoomDuration: {
+        type: Number, // Confirmed duration from Zoom API (in minutes)
+        default: 0
+    },
+    zoomJoinedAt: {
+        type: Date
+    },
+    zoomLeftAt: {
+        type: Date
     },
     // Track all join/rejoin sessions
     joinSessions: [{

@@ -331,7 +331,9 @@ exports.getMeetingAttendanceDetails = async (req, res) => {
 exports.getMeetingLogs = async (req, res) => {
   try {
     const { id } = req.params;
-    const logs = await MeetingLog.find({ meetingId: id }).sort({ joinedAt: -1 });
+    const logs = await MeetingLog.find({ meetingId: id })
+      .populate('userId', 'name email')
+      .sort({ joinedAt: -1 });
     return res.status(200).json({ logs });
   } catch (err) {
     console.error("Error fetching logs:", err);
@@ -453,55 +455,134 @@ exports.getMom = async (req, res) => {
 // --- SYNC MEETING ATTENDANCE ---
 exports.syncMeetingAttendance = async (req, res) => {
   try {
-    const { id } = req.params; // Meeting ID (DB ID)
+    const { id } = req.params;
     const meeting = await Meeting.findById(id);
 
     if (!meeting || !meeting.zoomMeetingId) {
       return res.status(404).json({ message: "Meeting not found or not a Zoom meeting" });
     }
 
-    // 1. Fetch Report from Zoom
     const report = await zoomService.getMeetingParticipantsReport(meeting.zoomMeetingId);
 
-    // Zoom API might return { message: "Report could not be retrieved" } or similar if not ready
     if (!report || !report.participants) {
       return res.status(400).json({ message: "Attendance report not available yet. (Wait for meeting to end)" });
     }
 
-    console.log(`Syncing Attendance for Meeting ${id}. Found ${report.participants.length} participants.`);
+    console.log(`Syncing Attendance for Meeting ${id}. Found ${report.participants.length} raw participant entries.`);
 
-    let updatedCount = 0;
+    // 1. Group participants by User Identity (Email or Name)
+    // We need to group because a single user might join multiple times (multiple rows in Zoom report)
+    const participantsMap = new Map();
 
-    // 2. Process each participant
     for (const p of report.participants) {
-      // p has { user_email, duration (seconds), name, join_time, leave_time }
-      if (p.user_email) {
-        // Find User by Email
-        const user = await User.findOne({ email: p.user_email });
-        if (user) {
-          // Upsert MeetingLog
-          // Note: duration from Zoom is in seconds, we store minutes.
-          const durationMinutes = Math.round(p.duration / 60);
+      // Identity Key: Email (preferred) or Name
+      const email = p.user_email ? p.user_email.toLowerCase().trim() : null;
+      const name = p.name ? p.name.trim() : 'Unknown';
+      const key = email || name; // Unique key for grouping
 
-          await MeetingLog.findOneAndUpdate(
-            { meetingId: id, userId: user._id },
-            {
-              userName: user.name, // Ensure name is up to date
-              joinedAt: new Date(p.join_time),
-              leftAt: p.leave_time ? new Date(p.leave_time) : undefined,
-              duration: durationMinutes
-            },
-            { upsert: true, new: true }
-          );
-          updatedCount++;
-        }
+      if (!participantsMap.has(key)) {
+        participantsMap.set(key, {
+          email: email,
+          name: name,
+          sessions: []
+        });
+      }
+
+      const entry = participantsMap.get(key);
+
+      // Calculate session details
+      const durationMinutes = Math.round((p.duration || 0) / 60);
+      const joinedAt = p.join_time ? new Date(p.join_time) : new Date();
+      const leftAt = p.leave_time ? new Date(p.leave_time) : undefined; // Zoom might not have leave_time for active?
+
+      entry.sessions.push({
+        joinedAt,
+        leftAt,
+        duration: durationMinutes
+      });
+    }
+
+    let matchedCount = 0;
+    let totalSynced = 0;
+
+    // 2. Process each unique participant
+    for (const [key, data] of participantsMap.entries()) {
+      totalSynced++;
+
+      // Sort sessions by joinedAt to find first join and last leave
+      data.sessions.sort((a, b) => a.joinedAt - b.joinedAt);
+
+      // Aggregate Data
+      const firstJoinedAt = data.sessions[0].joinedAt;
+      const lastLeftAt = data.sessions[data.sessions.length - 1].leftAt;
+
+      // Total duration is sum of all session durations
+      const totalDuration = data.sessions.reduce((acc, s) => acc + s.duration, 0);
+
+      // Try to find matching DB User
+      let user = null;
+      if (data.email) {
+        user = await User.findOne({
+          $or: [
+            { email: data.email },
+            { zoomEmail: data.email }
+          ]
+        });
+      }
+
+      // Fallback: If name looks like an email, try matching against DB email
+      if (!user && data.name.includes('@')) {
+        const nameAsEmail = data.name.toLowerCase().trim();
+        user = await User.findOne({
+          $or: [
+            { email: nameAsEmail },
+            { zoomEmail: nameAsEmail }
+          ]
+        });
+      }
+
+      // Fallback: Match by Name if no email link found
+      if (!user && data.name !== 'Unknown') {
+        user = await User.findOne({ name: { $regex: new RegExp(`^${data.name}$`, 'i') } });
+      }
+
+      const updateData = {
+        userName: user ? user.name : data.name,
+        // We use Zoom data as authority for specific Zoom fields
+        zoomDuration: totalDuration,
+        zoomJoinedAt: firstJoinedAt,
+        zoomLeftAt: lastLeftAt,
+        // Also update main fields to reflect reality if this is a Zoom meeting
+        duration: totalDuration,
+        joinedAt: firstJoinedAt,
+        leftAt: lastLeftAt,
+        // The joinSessions array should reflect the Zoom sessions
+        joinSessions: data.sessions
+      };
+
+      if (user) {
+        console.log(`  ✅ Matched "${data.name}" (${data.email || 'no-email'}) → DB User: ${user.name}`);
+        await MeetingLog.findOneAndUpdate(
+          { meetingId: id, userId: user._id },
+          { $set: updateData },
+          { upsert: true, new: true }
+        );
+        matchedCount++;
+      } else {
+        console.log(`  ⚠️  No DB match for "${data.name}" (${data.email || 'no-email'}) — saving as guest`);
+        // Update or Create by Name (if userId is null)
+        await MeetingLog.findOneAndUpdate(
+          { meetingId: id, userName: data.name, userId: null },
+          { $set: updateData },
+          { upsert: true, new: true }
+        );
       }
     }
 
     return res.status(200).json({
       success: true,
-      message: `Synced attendance for ${updatedCount} members`,
-      data: report.participants
+      message: `Synced ${totalSynced} unique participants (${matchedCount} matched to DB users) from ${report.participants.length} session records.`,
+      data: Array.from(participantsMap.values())
     });
 
   } catch (error) {
@@ -619,18 +700,43 @@ exports.uploadAttendancePhoto = async (req, res) => {
       {
         userName: userName,
         attendanceProof: photoUrl,
-        joinedAt: new Date() // Mark attendance time
+        // Ensure joinedAt is set if not present
+        $setOnInsert: { joinedAt: new Date(), duration: 0 }
       },
       { upsert: true, new: true }
     );
 
-    return res.status(200).json({
-      success: true,
-      message: 'Attendance photo uploaded successfully',
-      data: log
-    });
+    res.status(200).json({ success: true, message: "Photo uploaded", data: log });
   } catch (error) {
     console.error("Error uploading attendance photo:", error);
-    return res.status(500).json({ message: "Server error uploading photo" });
+    res.status(500).json({ message: "Server error uploading photo" });
+  }
+};
+
+// --- CHECK MEETING STATUS ---
+exports.checkMeetingStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const meeting = await Meeting.findById(id);
+    if (!meeting) return res.status(404).json({ message: "Meeting not found" });
+
+    // Check Zoom Status
+    if (meeting.meetingType === 'zoom' && meeting.zoomMeetingId) {
+      try {
+        const details = await zoomService.getMeetingDetails(meeting.zoomMeetingId);
+        // details.status can be 'waiting', 'started', 'finished'
+        if (details.status === 'finished') {
+          return res.json({ status: 'ended' });
+        }
+      } catch (err) {
+        console.error("Zoom status check failed:", err.message);
+        // Fallback to active if Zoom check fails (don't kick out users due to API error)
+      }
+    }
+
+    return res.json({ status: 'active' });
+  } catch (err) {
+    console.error("Error checking status:", err);
+    res.status(500).json({ message: "Server error" });
   }
 };

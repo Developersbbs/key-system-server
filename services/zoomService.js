@@ -53,18 +53,31 @@ const listZoomUsers = async (accessToken) => {
 exports.getMeetingParticipantsReport = async (meetingId) => {
     try {
         const accessToken = await getZoomAccessToken();
-        // Use the 'past_meetings/{meetingId}/participants' endpoint
-        // Note: meetingId can be the long UUID or the short number.
-        const response = await axios.get(`https://api.zoom.us/v2/report/meetings/${meetingId}/participants?page_size=300`, {
-            headers: {
-                'Authorization': `Bearer ${accessToken}`,
-                'Content-Type': 'application/json'
+
+        // Try /past_meetings endpoint first (requires meeting:read scope - available by default)
+        try {
+            const response = await axios.get(
+                `https://api.zoom.us/v2/past_meetings/${meetingId}/participants?page_size=300`,
+                { headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' } }
+            );
+            if (response.data?.participants?.length > 0) {
+                console.log(`[Zoom] past_meetings endpoint returned ${response.data.participants.length} participants.`);
+                return response.data;
             }
-        });
-        return response.data;
+        } catch (e1) {
+            console.log(`[Zoom] past_meetings endpoint failed (${e1.response?.data?.code}), trying report endpoint...`);
+        }
+
+        // Fallback: /report/meetings endpoint (requires report:read:admin scope)
+        const reportResponse = await axios.get(
+            `https://api.zoom.us/v2/report/meetings/${meetingId}/participants?page_size=300`,
+            { headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' } }
+        );
+        console.log(`[Zoom] report endpoint returned ${reportResponse.data?.participants?.length || 0} participants.`);
+        return reportResponse.data;
+
     } catch (error) {
         console.error('Error fetching meeting report:', JSON.stringify(error.response?.data || error.message, null, 2));
-        // Return empty list if report not ready (e.g. meeting not ended or too recent)
         return { participants: [] };
     }
 };
@@ -119,5 +132,22 @@ exports.createZoomMeeting = async (topic, startTime, duration, hostEmail) => {
         }
 
         throw new Error(`Zoom API Error: ${JSON.stringify(errorData?.message || error.message)}`);
+    }
+};
+
+// Get Meeting Details (Status)
+exports.getMeetingDetails = async (meetingId) => {
+    try {
+        const accessToken = await getZoomAccessToken();
+        const response = await axios.get(`https://api.zoom.us/v2/meetings/${meetingId}`, {
+            headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'Content-Type': 'application/json'
+            }
+        });
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching meeting details:', error.message);
+        throw error;
     }
 };

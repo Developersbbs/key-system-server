@@ -161,6 +161,12 @@ const userSchema = new mongoose.Schema({
 
   // NEW: Profile settings for privacy control
 
+  // Zoom account email (may differ from login email)
+  zoomEmail: {
+    type: String,
+    default: ''
+  },
+
 }, {
   timestamps: true,
 });

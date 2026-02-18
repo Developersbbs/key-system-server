@@ -17,7 +17,8 @@ const {
   syncMeetingAttendance,
   getLeaderboard,
   updateMeeting,
-  uploadAttendancePhoto
+  uploadAttendancePhoto,
+  checkMeetingStatus
 } = require('../controllers/meetingController');
 
 // Admin routes
@@ -57,5 +58,8 @@ router.post('/generate-zoom', auth, allowRoles(['admin']), generateZoomMeeting);
 // @desc    Upload attendance photo for in-person meetings
 // @access  Member (participant)
 router.post('/:id/attendance-photo', auth, uploadAttendancePhoto);
+
+// Check Status
+router.get('/:id/status', auth, checkMeetingStatus);
 
 module.exports = router;

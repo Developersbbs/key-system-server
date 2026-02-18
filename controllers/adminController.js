@@ -234,14 +234,14 @@ exports.updateUserStatus = async (req, res) => {
   }
 };
 /**
- * @desc    Update user details (name, email, phone)
+ * @desc    Update user details (name, email, phone, zoomEmail)
  * @route   PUT /api/admin/users/:userId
  * @access  Admin
  */
 exports.updateUserDetails = async (req, res) => {
   try {
     const { userId } = req.params;
-    const { name, email, phoneNumber } = req.body;
+    const { name, email, phoneNumber, zoomEmail } = req.body;
 
     const user = await User.findById(userId);
     if (!user) {
@@ -258,6 +258,7 @@ exports.updateUserDetails = async (req, res) => {
 
     if (name) user.name = name;
     if (phoneNumber) user.phoneNumber = phoneNumber;
+    if (zoomEmail !== undefined) user.zoomEmail = zoomEmail.trim().toLowerCase();
 
     await user.save();
 
@@ -268,6 +269,7 @@ exports.updateUserDetails = async (req, res) => {
         name: user.name,
         email: user.email,
         phoneNumber: user.phoneNumber,
+        zoomEmail: user.zoomEmail,
         role: user.role,
         isActive: user.isActive
       }
@@ -278,3 +280,4 @@ exports.updateUserDetails = async (req, res) => {
     res.status(500).json({ message: 'Server Error' });
   }
 };
+
