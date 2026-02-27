@@ -9,12 +9,12 @@ const subscriptionSchema = new mongoose.Schema({
     amount: {
         type: Number,
         required: true,
-        default: 10 // $10 USD
+        default: 10 // 10 USDT
     },
     currency: {
         type: String,
-        default: 'USD',
-        enum: ['USD', 'INR']
+        default: 'USDT',
+        enum: ['USDT', 'INR']
     },
     paymentScreenshot: {
         type: String, // Firebase Storage URL

@@ -48,7 +48,7 @@ exports.createSubscription = async (req, res) => {
         const subscription = new Subscription({
             user: userId,
             amount: req.body.amount || 10,
-            currency: req.body.currency || 'USD'
+            currency: req.body.currency || 'USDT'
         });
 
         await subscription.save();
