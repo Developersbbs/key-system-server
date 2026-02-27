@@ -41,6 +41,14 @@ const systemConfigSchema = new mongoose.Schema({
         type: String,
         default: ''
     },
+    bankImage1: {
+        type: String,
+        default: ''
+    },
+    bankImage2: {
+        type: String,
+        default: ''
+    },
 
     // Future configurations can be added here
 }, {

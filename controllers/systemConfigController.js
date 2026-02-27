@@ -38,16 +38,17 @@ exports.updateSystemConfig = async (req, res) => {
         if (zoomAccountId !== undefined) config.zoomAccountId = zoomAccountId.trim();
         if (zoomClientId !== undefined) config.zoomClientId = zoomClientId.trim();
         if (zoomClientSecret !== undefined) config.zoomClientSecret = zoomClientSecret.trim();
-        if (zoomClientSecret !== undefined) config.zoomClientSecret = zoomClientSecret.trim();
         if (zoomHostEmail !== undefined) config.zoomHostEmail = zoomHostEmail.trim();
 
         // Bank Details
-        const { upiId, accountNumber, ifscCode, accountName, qrCodeUrl } = req.body;
+        const { upiId, accountNumber, ifscCode, accountName, qrCodeUrl, bankImage1, bankImage2 } = req.body;
         if (upiId !== undefined) config.upiId = upiId.trim();
         if (accountNumber !== undefined) config.accountNumber = accountNumber.trim();
         if (ifscCode !== undefined) config.ifscCode = ifscCode.trim();
         if (accountName !== undefined) config.accountName = accountName.trim();
         if (qrCodeUrl !== undefined) config.qrCodeUrl = qrCodeUrl.trim();
+        if (bankImage1 !== undefined) config.bankImage1 = bankImage1.trim();
+        if (bankImage2 !== undefined) config.bankImage2 = bankImage2.trim();
 
         await config.save();
 
@@ -61,6 +62,36 @@ exports.updateSystemConfig = async (req, res) => {
         return res.status(500).json({
             success: false,
             message: 'Failed to update system configuration',
+            error: error.message
+        });
+    }
+};
+
+// Get Payment Information (Subset of config for members)
+exports.getPaymentConfig = async (req, res) => {
+    try {
+        const config = await SystemConfig.getConfig();
+
+        // Return only payment related fields
+        const paymentConfig = {
+            upiId: config.upiId,
+            accountNumber: config.accountNumber,
+            ifscCode: config.ifscCode,
+            accountName: config.accountName,
+            qrCodeUrl: config.qrCodeUrl,
+            bankImage1: config.bankImage1,
+            bankImage2: config.bankImage2
+        };
+
+        return res.status(200).json({
+            success: true,
+            config: paymentConfig
+        });
+    } catch (error) {
+        console.error('Error fetching payment config:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Failed to fetch payment information',
             error: error.message
         });
     }

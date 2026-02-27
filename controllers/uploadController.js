@@ -126,16 +126,17 @@ exports.generateSystemConfigUploadUrl = async (req, res) => {
             contentType: fileType,
         });
 
-        // Generate a signed public URL for reading (make it public first in a real scenario, or use signed url)
-        // For simplicity and to match the other controller flow, we'll return a long-lived signed URL or just the storage path
-        // BUT better yet, let's construct the public URL format which we can make public after upload
-        // The standard public URL format is: https://storage.googleapis.com/[BUCKET_NAME]/[FILE_PATH]
-        const finalUrl = `https://storage.googleapis.com/${bucket.name}/${filePath}`;
+        // Generate a signed URL for reading (7 days - Firebase maximum)
+        const [finalUrl] = await file.getSignedUrl({
+            version: 'v4',
+            action: 'read',
+            expires: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7 days (Firebase maximum)
+        });
 
         res.json({
             uploadUrl,
             finalUrl,
-            filePath, // Send this so frontend can request backend to make it public if needed
+            filePath,
             success: true,
             message: 'Presigned URL generated successfully'
         });
