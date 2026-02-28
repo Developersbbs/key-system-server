@@ -4,6 +4,7 @@ const MeetingLog = require("../models/MeetingLog");
 const MeetingMom = require("../models/MeetingMom");
 const Admin = require("../models/Admin");
 const User = require("../models/User");
+const Announcement = require("../models/Announcement");
 const zoomService = require('../services/zoomService');
 
 // --- CREATE MEETING ---
@@ -39,6 +40,17 @@ exports.createMeeting = async (req, res) => {
     });
 
     const savedMeeting = await newMeeting.save();
+
+    // Create an announcement notification for the new meeting
+    const announcementDate = new Date(meetingDate).toLocaleString();
+    const newAnnouncement = new Announcement({
+      title: `New Meeting: ${title}`,
+      content: `A new meeting has been scheduled for ${announcementDate}. Please check your meetings dashboard for details and links.`,
+      type: 'info',
+      createdBy: adminUserId
+    });
+    await newAnnouncement.save();
+
     await savedMeeting.populate(['createdBy', 'host', 'participants'], 'name');
 
     res.status(201).json(savedMeeting);
