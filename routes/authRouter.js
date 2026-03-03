@@ -13,6 +13,7 @@ const authController = require("../controllers/authController");
 router.post("/register", authController.register);
 
 router.post("/login", authController.login);
+router.post("/google", authController.googleAuth);
 router.post("/logout", auth, authController.logout);
 router.get("/me", auth, authController.getProfile);
 

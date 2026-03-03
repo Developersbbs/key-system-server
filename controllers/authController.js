@@ -45,10 +45,10 @@ exports.register = async (req, res) => {
 
     const user = await User.create(newUser);
 
-    return res.status(201).json({ 
-      message: "Registered successfully", 
-      user, 
-      role: user.role 
+    return res.status(201).json({
+      message: "Registered successfully",
+      user,
+      role: user.role
     });
 
   } catch (err) {
@@ -98,6 +98,65 @@ exports.login = async (req, res) => {
   } catch (err) {
     console.error("Login error:", err);
     return res.status(401).json({ message: err.message || "Invalid or expired token" });
+  }
+};
+
+// --- GOOGLE AUTH ---
+exports.googleAuth = async (req, res) => {
+  try {
+    const { idToken, rememberMe } = req.body;
+    if (!idToken) {
+      return res.status(400).json({ message: "idToken is required" });
+    }
+
+    const decoded = await admin.auth().verifyIdToken(idToken, true);
+    const firebaseUID = decoded.uid;
+    const email = decoded.email;
+    const name = decoded.name || email.split("@")[0]; // Fallback to email prefix if no name
+    const picture = decoded.picture || '';
+
+    // First try to find user by Firebase UID
+    let user = await User.findOne({ firebaseUID });
+
+    // If not found by UID, try to find by email
+    if (!user && email) {
+      user = await User.findOne({ email });
+
+      if (user) {
+        // Update the Firebase UID to match current authentication
+        user.firebaseUID = firebaseUID;
+        // Optionally update other details if empty
+        if (!user.imageUrl && picture) user.imageUrl = picture;
+        await user.save();
+        console.log(`Updated Firebase UID for user ${user._id} from email match`);
+      }
+    }
+
+    // If user still doesn't exist, create a new one (Registration flow)
+    if (!user) {
+      const newUser = {
+        firebaseUID,
+        email,
+        name,
+        imageUrl: picture,
+        role: "member",
+        // phoneNumber is now sparse/optional, so we omit it
+      };
+
+      user = await User.create(newUser);
+      console.log(`Created new Google Auth user ${user._id}`);
+    }
+
+    // Login successful
+    await setSessionCookie(res, idToken, !!rememberMe);
+    return res.json({
+      message: "Google Authentication successful",
+      user,
+      role: user.role
+    });
+  } catch (err) {
+    console.error("Google Auth error:", err);
+    return res.status(401).json({ message: err.message || "Invalid or expired Google token" });
   }
 };
 
