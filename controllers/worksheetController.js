@@ -1,0 +1,167 @@
+const DailyWorksheet = require('../models/DailyWorksheet');
+
+// Member: Create a new daily worksheet entry
+exports.submitWorksheet = async (req, res) => {
+    try {
+        const {
+            date, name, bom, bdm, tm, sCall, jCall,
+            stp1Name, stp2Name, register, staking, income
+        } = req.body;
+
+        const parsedDate = new Date(date || Date.now());
+
+        // Restrict submission to between 6:00 AM and 11:59 PM
+        const currentHour = new Date().getHours();
+        if (currentHour < 6) {
+            return res.status(403).json({ message: 'Worksheets can only be submitted between 6:00 AM and 11:59 PM.' });
+        }
+
+        parsedDate.setHours(0, 0, 0, 0); // Normalize to midnight
+
+        // Check if the user already submitted a worksheet for this date
+        const existingEntry = await DailyWorksheet.findOne({
+            user: req.user.id,
+            date: {
+                $gte: parsedDate,
+                $lt: new Date(parsedDate.getTime() + 24 * 60 * 60 * 1000)
+            }
+        });
+
+        if (existingEntry) {
+            return res.status(400).json({ message: 'You have already submitted a worksheet for this date.' });
+        }
+
+        const worksheet = new DailyWorksheet({
+            user: req.user.id,
+            date: parsedDate,
+            name,
+            bom,
+            bdm,
+            tm,
+            sCall,
+            jCall,
+            stp1Name,
+            stp2Name,
+            register,
+            staking,
+            income
+        });
+
+        await worksheet.save();
+
+        // Populate user info before sending
+        await worksheet.populate('user', 'name email phoneNumber role');
+
+        res.status(201).json({ message: 'Worksheet submitted successfully', worksheet });
+    } catch (error) {
+        if (error.code === 11000) {
+            return res.status(400).json({ message: 'A worksheet for this date already exists.' });
+        }
+        console.error('Submit worksheet error:', error);
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+};
+
+// Member: Get all their own submitted worksheets
+exports.getMyWorksheets = async (req, res) => {
+    try {
+        const worksheets = await DailyWorksheet.find({ user: req.user.id })
+            .sort({ date: -1 })
+            .populate('user', 'name email phoneNumber role');
+
+        res.status(200).json(worksheets);
+    } catch (error) {
+        console.error('Get my worksheets error:', error);
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+};
+
+// Admin: Get all worksheets from everyone
+exports.getAllWorksheets = async (req, res) => {
+    try {
+        const worksheets = await DailyWorksheet.find({})
+            .sort({ date: -1 })
+            .populate('user', 'name email phoneNumber role');
+
+        res.status(200).json(worksheets);
+    } catch (error) {
+        console.error('Get all worksheets error:', error);
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+};
+
+// Update an existing worksheet (only if it's from today)
+exports.updateWorksheet = async (req, res) => {
+    try {
+        const worksheet = await DailyWorksheet.findById(req.params.id);
+
+        if (!worksheet) {
+            return res.status(404).json({ message: 'Worksheet not found' });
+        }
+
+        // Check ownership (Even admins can only edit their own worksheets)
+        if (worksheet.user.toString() !== req.user.id) {
+            return res.status(403).json({ message: 'Not authorized to edit other members worksheets' });
+        }
+
+        // Check if it's from today
+        const worksheetDate = new Date(worksheet.date);
+        const today = new Date();
+        if (
+            worksheetDate.getDate() !== today.getDate() ||
+            worksheetDate.getMonth() !== today.getMonth() ||
+            worksheetDate.getFullYear() !== today.getFullYear()
+        ) {
+            return res.status(403).json({ message: 'Can only edit worksheets submitted today' });
+        }
+
+        // Restrict time if needed? The user said 12am to 12pm, maybe we skip time check for edits, or keep it open.
+        // I will let them edit anytime on the same day, or wait, they said "only next day hide that option".
+        // Let's enforce that if it is "today", they can edit.
+
+        const updatedWorksheet = await DailyWorksheet.findByIdAndUpdate(
+            req.params.id,
+            { $set: req.body },
+            { new: true }
+        ).populate('user', 'name email phoneNumber role');
+
+        res.status(200).json({ message: 'Worksheet updated successfully', worksheet: updatedWorksheet });
+    } catch (error) {
+        console.error('Update worksheet error:', error);
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+};
+
+// Delete a worksheet (only if it's from today)
+exports.deleteWorksheet = async (req, res) => {
+    try {
+        const worksheet = await DailyWorksheet.findById(req.params.id);
+
+        if (!worksheet) {
+            return res.status(404).json({ message: 'Worksheet not found' });
+        }
+
+        // Check ownership (Even admins can only delete their own worksheets)
+        if (worksheet.user.toString() !== req.user.id) {
+            return res.status(403).json({ message: 'Not authorized to delete other members worksheets' });
+        }
+
+        // Check if it's from today
+        const worksheetDate = new Date(worksheet.date);
+        const today = new Date();
+        if (
+            worksheetDate.getDate() !== today.getDate() ||
+            worksheetDate.getMonth() !== today.getMonth() ||
+            worksheetDate.getFullYear() !== today.getFullYear()
+        ) {
+            return res.status(403).json({ message: 'Can only delete worksheets submitted today' });
+        }
+
+        await worksheet.deleteOne();
+
+        res.status(200).json({ message: 'Worksheet deleted successfully', id: req.params.id });
+    } catch (error) {
+        console.error('Delete worksheet error:', error);
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+};

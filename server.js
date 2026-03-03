@@ -130,6 +130,7 @@ app.use('/api/users', userRouter);
 app.use('/api/announcements', announcementRouter); // ✅ Add this line
 app.use('/api/system-config', systemConfigRouter);
 app.use('/api/founders', founderRouter);
+app.use('/api/worksheets', require('./routes/worksheetRouter')); // ✅ Worksheet Routes
 app.use('/api/activities', require('./routes/activityRouter')); // ✅ Activity Routes
 app.use('/api/tools', toolRouter);
 app.use('/api/subscriptions', subscriptionRouter); // ✅ Subscription Routes
