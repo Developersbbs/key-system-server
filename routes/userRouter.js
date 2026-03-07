@@ -12,7 +12,8 @@ const {
   getPublicProfile,
   updatePaymentDetails,
   updateProfileSettings,
-  getSellerPaymentDetails
+  getSellerPaymentDetails,
+  updateProfile,                  
 } = userController;
 
 // --- Test route ---
@@ -27,6 +28,11 @@ router.get('/test', (req, res) => {
 // --- Current user profile ---
 if (typeof getProfile === 'function') {
   router.get('/profile', auth, allowRoles(['member', 'admin']), getProfile);
+}
+
+// --- Update profile (name, phoneNumber, profileDetails) ---  ← NEW
+if (typeof updateProfile === 'function') {
+  router.put('/profile', auth, allowRoles(['member', 'admin']), updateProfile);
 }
 
 // --- Update payment details ---
@@ -57,8 +63,5 @@ if (typeof getSellerPaymentDetails === 'function') {
 } else {
   console.warn('getSellerPaymentDetails not found in userController');
 }
-
-// Optional: Add other user routes here
-// e.g., router.get('/all', auth, allowRoles(['admin']), getAllUsers);
 
 module.exports = router;

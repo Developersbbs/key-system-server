@@ -1,17 +1,17 @@
 // controllers/userController.js
-const User = require('../models/User');
+const User = require("../models/User");
 
 // Get user profile
 exports.getProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({ message: "User not found" });
     }
     res.status(200).json(user);
   } catch (err) {
-    console.error('Error fetching profile:', err);
-    res.status(500).json({ message: 'Server Error' });
+    console.error("Error fetching profile:", err);
+    res.status(500).json({ message: "Server Error" });
   }
 };
 
@@ -19,27 +19,36 @@ exports.getProfile = async (req, res) => {
 exports.getPublicProfile = async (req, res) => {
   try {
     const { id } = req.params;
-    const user = await User.findById(id).select('name email chapter imageUrl designation state district');
+    const user = await User.findById(id).select(
+      "name email chapter imageUrl designation state district",
+    );
 
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({ message: "User not found" });
     }
 
     res.status(200).json(user);
   } catch (err) {
-    console.error('Error fetching public profile:', err);
-    res.status(500).json({ message: 'Server Error' });
+    console.error("Error fetching public profile:", err);
+    res.status(500).json({ message: "Server Error" });
   }
 };
 
 // Update payment details
 exports.updatePaymentDetails = async (req, res) => {
   try {
-    const { upiId, qrCodeUrl, accountHolderName, accountNumber, ifscCode, bankName } = req.body;
+    const {
+      upiId,
+      qrCodeUrl,
+      accountHolderName,
+      accountNumber,
+      ifscCode,
+      bankName,
+    } = req.body;
 
     const user = await User.findById(req.user._id);
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({ message: "User not found" });
     }
 
     // Initialize paymentDetails if it doesn't exist
@@ -50,8 +59,10 @@ exports.updatePaymentDetails = async (req, res) => {
     // Update payment details - only update fields that are provided
     if (upiId !== undefined) user.paymentDetails.upiId = upiId;
     if (qrCodeUrl !== undefined) user.paymentDetails.qrCodeUrl = qrCodeUrl;
-    if (accountHolderName !== undefined) user.paymentDetails.accountHolderName = accountHolderName;
-    if (accountNumber !== undefined) user.paymentDetails.accountNumber = accountNumber;
+    if (accountHolderName !== undefined)
+      user.paymentDetails.accountHolderName = accountHolderName;
+    if (accountNumber !== undefined)
+      user.paymentDetails.accountNumber = accountNumber;
     if (ifscCode !== undefined) user.paymentDetails.ifscCode = ifscCode;
     if (bankName !== undefined) user.paymentDetails.bankName = bankName;
 
@@ -60,13 +71,12 @@ exports.updatePaymentDetails = async (req, res) => {
     // Return user without sensitive data
     const updatedUser = await User.findById(user._id);
     res.status(200).json({
-      message: 'Payment details updated successfully',
-      user: updatedUser
+      message: "Payment details updated successfully",
+      user: updatedUser,
     });
-
   } catch (err) {
-    console.error('Error updating payment details:', err);
-    res.status(500).json({ message: 'Server Error', error: err.message });
+    console.error("Error updating payment details:", err);
+    res.status(500).json({ message: "Server Error", error: err.message });
   }
 };
 
@@ -77,7 +87,7 @@ exports.updateProfileSettings = async (req, res) => {
 
     const user = await User.findById(req.user._id);
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({ message: "User not found" });
     }
 
     // Initialize profileSettings if it doesn't exist
@@ -86,20 +96,21 @@ exports.updateProfileSettings = async (req, res) => {
     }
 
     // Update profile settings - only update fields that are provided
-    if (showPhoneNumber !== undefined) user.profileSettings.showPhoneNumber = showPhoneNumber;
-    if (showPaymentDetails !== undefined) user.profileSettings.showPaymentDetails = showPaymentDetails;
+    if (showPhoneNumber !== undefined)
+      user.profileSettings.showPhoneNumber = showPhoneNumber;
+    if (showPaymentDetails !== undefined)
+      user.profileSettings.showPaymentDetails = showPaymentDetails;
 
     await user.save();
 
     const updatedUser = await User.findById(user._id);
     res.status(200).json({
-      message: 'Profile settings updated successfully',
-      user: updatedUser
+      message: "Profile settings updated successfully",
+      user: updatedUser,
     });
-
   } catch (err) {
-    console.error('Error updating profile settings:', err);
-    res.status(500).json({ message: 'Server Error' });
+    console.error("Error updating profile settings:", err);
+    res.status(500).json({ message: "Server Error" });
   }
 };
 
@@ -109,12 +120,12 @@ exports.updateProfileImage = async (req, res) => {
     const { imageUrl } = req.body;
 
     if (!imageUrl) {
-      return res.status(400).json({ message: 'Image URL is required' });
+      return res.status(400).json({ message: "Image URL is required" });
     }
 
     const user = await User.findById(req.user._id);
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({ message: "User not found" });
     }
 
     user.imageUrl = imageUrl;
@@ -122,13 +133,77 @@ exports.updateProfileImage = async (req, res) => {
 
     const updatedUser = await User.findById(user._id);
     res.status(200).json({
-      message: 'Profile image updated successfully',
-      user: updatedUser
+      message: "Profile image updated successfully",
+      user: updatedUser,
     });
-
   } catch (err) {
-    console.error('Error updating profile image:', err);
-    res.status(500).json({ message: 'Server Error', error: err.message });
+    console.error("Error updating profile image:", err);
+    res.status(500).json({ message: "Server Error", error: err.message });
+  }
+};
+
+exports.updateProfile = async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    const { name, phoneNumber, profileDetails } = req.body;
+
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Update basic fields
+    if (name !== undefined) {
+      user.name = name;
+    }
+
+    if (phoneNumber !== undefined) {
+      user.phoneNumber = phoneNumber;
+    }
+
+    // Initialize profileDetails if not exists
+    if (!user.profileDetails) {
+      user.profileDetails = {};
+    }
+
+    // Update profile details safely
+    if (profileDetails) {
+      if (profileDetails.address !== undefined) {
+        user.profileDetails.address = profileDetails.address;
+      }
+
+      if (profileDetails.state !== undefined) {
+        user.profileDetails.state = profileDetails.state;
+      }
+
+      if (profileDetails.district !== undefined) {
+        user.profileDetails.district = profileDetails.district;
+      }
+
+      if (profileDetails.dob !== undefined) {
+        user.profileDetails.dob = profileDetails.dob;
+      }
+
+      if (profileDetails.gender !== undefined) {
+        user.profileDetails.gender = profileDetails.gender;
+      }
+    }
+
+    await user.save();
+
+    res.status(200).json({
+      message: "Profile updated successfully",
+      user,
+    });
+  } catch (error) {
+    console.error("Error updating profile:", error);
+
+    res.status(500).json({
+      message: "Server Error",
+      error: error.message,
+    });
   }
 };
 
@@ -139,27 +214,30 @@ exports.getSellerPaymentDetails = async (req, res) => {
 
     // Validate sellerId
     if (!sellerId) {
-      return res.status(400).json({ message: 'Seller ID is required' });
+      return res.status(400).json({ message: "Seller ID is required" });
     }
 
-    const seller = await User.findById(sellerId).select('paymentDetails profileSettings name');
+    const seller = await User.findById(sellerId).select(
+      "paymentDetails profileSettings name",
+    );
     if (!seller) {
-      return res.status(404).json({ message: 'Seller not found' });
+      return res.status(404).json({ message: "Seller not found" });
     }
 
     const publicPaymentDetails = seller.getPublicPaymentDetails();
 
     if (!publicPaymentDetails) {
-      return res.status(403).json({ message: 'Seller has not shared payment details' });
+      return res
+        .status(403)
+        .json({ message: "Seller has not shared payment details" });
     }
 
     res.status(200).json({
       sellerName: seller.name,
-      paymentDetails: publicPaymentDetails
+      paymentDetails: publicPaymentDetails,
     });
-
   } catch (err) {
-    console.error('Error fetching seller payment details:', err);
-    res.status(500).json({ message: 'Server Error', error: err.message });
+    console.error("Error fetching seller payment details:", err);
+    res.status(500).json({ message: "Server Error", error: err.message });
   }
 };
