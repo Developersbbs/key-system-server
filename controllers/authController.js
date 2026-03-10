@@ -41,6 +41,7 @@ exports.register = async (req, res) => {
       name: name.trim(),
       role: "member",
       email: email || `${uid}@placeholder.email`,
+      phoneNumberVerified: true, // Manual registration implies OTP was already verified
     };
 
     const user = await User.create(newUser);
@@ -140,6 +141,7 @@ exports.googleAuth = async (req, res) => {
         name,
         imageUrl: picture,
         role: "member",
+        phoneNumberVerified: false, // Google auth needs phone verify step
         // phoneNumber is now sparse/optional, so we omit it
       };
 

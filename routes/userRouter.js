@@ -13,7 +13,7 @@ const {
   updatePaymentDetails,
   updateProfileSettings,
   getSellerPaymentDetails,
-  updateProfile,                  
+  updateProfile,
 } = userController;
 
 // --- Test route ---
@@ -49,6 +49,9 @@ if (typeof updateProfileSettings === 'function') {
 if (typeof userController.updateProfileImage === 'function') {
   router.put('/profile-image', auth, allowRoles(['member', 'admin']), userController.updateProfileImage);
 }
+
+// --- Verify phone ---
+router.post('/verify-phone', auth, allowRoles(['member', 'admin']), userController.verifyPhone);
 
 // --- Get public profile ---
 if (typeof getPublicProfile === 'function') {

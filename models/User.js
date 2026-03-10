@@ -20,6 +20,10 @@ const userSchema = new mongoose.Schema(
       sparse: true,
       unique: true,
     },
+    phoneNumberVerified: {
+      type: Boolean,
+      default: false,
+    },
     imageUrl: {
       type: String,
       default: "",
@@ -43,7 +47,7 @@ const userSchema = new mongoose.Schema(
       },
       gender: {
         type: String,
-        enum: ["male", "female", "other"],
+        enum: ["male", "female", "other", ""],
         default: "",
       },
     },
@@ -61,7 +65,7 @@ const userSchema = new mongoose.Schema(
     status: {
       type: String,
       enum: ["active", "inactive", "suspended", "pending"],
-      default: "active",
+      default: "inactive",
     },
     isActive: {
       type: Boolean,
