@@ -8,7 +8,10 @@ const Event = require('../models/Event');
 exports.getAllEvents = async (req, res) => {
   try {
     // Sort by eventDate to show upcoming events first
-    const events = await Event.find({}).sort({ eventDate: 1 }).populate('postedBy', 'name');
+    const events = await Event.find({})
+      .sort({ eventDate: 1 })
+      .populate('postedBy', 'name')
+      .populate('participants', 'name email');
     res.status(200).json(events);
   } catch (err) {
     res.status(500).json({ message: 'Server Error' });
@@ -22,12 +25,13 @@ exports.getAllEvents = async (req, res) => {
  */
 exports.createEvent = async (req, res) => {
   try {
-    const { description, eventDate, rate } = req.body;
+    const { description, eventDate, rate, participants } = req.body;
 
     const newEvent = new Event({
       description,
       eventDate,
       rate,
+      participants: participants || [],
       postedBy: req.user._id, // req.user is from the auth middleware
     });
 
@@ -51,20 +55,20 @@ exports.createEvent = async (req, res) => {
 exports.updateEvent = async (req, res) => {
   try {
     const { description, eventDate, rate, location, attendees } = req.body;
-    
+
     // Check if event exists
     const event = await Event.findById(req.params.id);
     if (!event) {
       return res.status(404).json({ message: 'Event not found' });
     }
-    
+
     // Update event
     const updatedEvent = await Event.findByIdAndUpdate(
       req.params.id,
-      { description, eventDate, rate, location, attendees },
+      { description, eventDate, rate, location, participants },
       { new: true, runValidators: true }
-    ).populate('postedBy', 'name');
-    
+    ).populate('postedBy', 'name').populate('participants', 'name email');
+
     res.status(200).json(updatedEvent);
   } catch (err) {
     res.status(500).json({ message: 'Server Error', error: err.message });
@@ -79,11 +83,11 @@ exports.updateEvent = async (req, res) => {
 exports.deleteEvent = async (req, res) => {
   try {
     const event = await Event.findById(req.params.id);
-    
+
     if (!event) {
       return res.status(404).json({ message: 'Event not found' });
     }
-    
+
     await Event.findByIdAndDelete(req.params.id);
     res.status(200).json({ message: 'Event deleted successfully' });
   } catch (err) {

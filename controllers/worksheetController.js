@@ -3,10 +3,7 @@ const DailyWorksheet = require('../models/DailyWorksheet');
 // Member: Create a new daily worksheet entry
 exports.submitWorksheet = async (req, res) => {
     try {
-        const {
-            date, name, bom, bdm, tm, sCall, jCall,
-            stp1Name, stp2Name, register, staking, income
-        } = req.body;
+        const { date, name, data } = req.body;
 
         const parsedDate = new Date(date || Date.now());
 
@@ -35,16 +32,7 @@ exports.submitWorksheet = async (req, res) => {
             user: req.user.id,
             date: parsedDate,
             name,
-            bom,
-            bdm,
-            tm,
-            sCall,
-            jCall,
-            stp1Name,
-            stp2Name,
-            register,
-            staking,
-            income
+            data
         });
 
         await worksheet.save();

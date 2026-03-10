@@ -15,45 +15,9 @@ const dailyWorksheetSchema = new mongoose.Schema({
         type: String,
         required: true,
     },
-    bom: {
-        type: String,
-        default: '',
-    },
-    bdm: {
-        type: String,
-        default: '',
-    },
-    tm: {
-        type: String,
-        default: '',
-    },
-    sCall: {
-        type: String,
-        default: '',
-    },
-    jCall: {
-        type: String,
-        default: '',
-    },
-    stp1Name: {
-        type: String,
-        default: '',
-    },
-    stp2Name: {
-        type: String,
-        default: '',
-    },
-    register: {
-        type: String,
-        default: '',
-    },
-    staking: {
-        type: String,
-        default: '',
-    },
-    income: {
-        type: String,
-        default: '',
+    data: {
+        type: mongoose.Schema.Types.Mixed,
+        default: {}
     }
 }, { timestamps: true });
 

@@ -20,6 +20,10 @@ const eventSchema = new mongoose.Schema({
     ref: 'User', // Links to the user who created the event
     required: true,
   },
+  participants: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+  }],
 }, { timestamps: true });
 
 module.exports = mongoose.models.Event || mongoose.model('Event', eventSchema);
