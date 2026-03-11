@@ -12,8 +12,8 @@ const announcementSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['info', 'warning', 'success', 'urgent'],
     default: 'info',
+    trim: true,
   },
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
