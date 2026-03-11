@@ -97,6 +97,16 @@ const userSchema = new mongoose.Schema(
         ref: "Course.chapters",
       },
     ],
+    // NEW: Track if user completed entire program
+    isComplete: {
+      type: Boolean,
+      default: false,
+    },
+
+    completionDate: {
+      type: Date,
+      default: null,
+    },
 
     // Track unlocked courses (deprecated - now handled by sequential logic)
     unlockedCourses: [

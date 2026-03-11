@@ -41,8 +41,10 @@ exports.getAllAdmins = async (req, res) => {
  */
 exports.getAllUsers = async (req, res) => {
   try {
-    const users = await User.find({})
-      .select('name email role')
+    const users = await User.find({
+      isComplete: true   // ✅ Only show members who completed all lessons and levels
+    })
+      .select('name email role phoneNumber')
       .sort({ name: 1 });
     res.status(200).json(users);
   } catch (err) {

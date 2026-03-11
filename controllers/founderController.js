@@ -109,3 +109,27 @@ exports.deleteFounder = async (req, res) => {
         res.status(500).json({ message: 'Server error deleting founder', error: error.message });
     }
 };
+
+// Get users eligible to become founders (completed members only)
+exports.getUsersToLink = async (req, res) => {
+    try {
+
+        const users = await User.find({
+            // role: "member",
+            isComplete: true   // ✅ only members who finished the program
+        })
+        .select("name email phoneNumber imageUrl")
+        .sort({ createdAt: -1 });
+
+        res.status(200).json(users);
+
+    } catch (error) {
+
+        console.error("Error fetching users to link:", error);
+
+        res.status(500).json({
+            message: "Server error fetching users"
+        });
+
+    }
+};
