@@ -269,3 +269,73 @@ exports.getSellerPaymentDetails = async (req, res) => {
     res.status(500).json({ message: "Server Error", error: err.message });
   }
 };
+
+
+// Check if user completed entire program
+
+exports.checkUserCompletion = async (req, res) => {
+  try {
+
+    const Course = require("../models/Course");
+
+    const user = await User.findById(req.user._id);
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const totalCourses = await Course.countDocuments();
+
+    if (user.completedCourses.length >= totalCourses) {
+
+      user.isComplete = true;
+
+      if (!user.completionDate) {
+        user.completionDate = new Date();
+      }
+
+      await user.save();
+
+    }
+
+    res.status(200).json({
+      isComplete: user.isComplete,
+      completionDate: user.completionDate
+    });
+
+  } catch (error) {
+
+    console.error("Error checking completion:", error);
+
+    res.status(500).json({
+      message: "Server Error",
+      error: error.message
+    });
+
+  }
+};
+
+
+
+// Get Leaderboard Users
+
+exports.getLeaders = async (req, res) => {
+  try {
+
+    const leaders = await User.find({ isComplete: true })
+      .select("name imageUrl completionDate")
+      .sort({ completionDate: 1 });
+
+    res.status(200).json(leaders);
+
+  } catch (error) {
+
+    console.error("Error fetching leaders:", error);
+
+    res.status(500).json({
+      message: "Server Error",
+      error: error.message
+    });
+
+  }
+};
