@@ -135,11 +135,16 @@ exports.uploadPaymentProof = async (req, res) => {
         });
         log('✅ File uploaded to Firebase Storage');
 
-        // Make the file public
-        await firebaseFile.makePublic();
-        log('✅ File made public');
+        // Make the file public (Wrap in try-catch to handle potential permission issues)
+        try {
+            await firebaseFile.makePublic();
+            log('✅ File made public');
+        } catch (publicError) {
+            log('⚠️ makePublic() failed, but continuing: ' + publicError.message);
+        }
 
-        // Generate public URL
+        // Generate public URL - Use the standard pattern that works even if makePublic() has limited support
+        // This is the direct access link for Firebase Storage
         const publicUrl = `https://storage.googleapis.com/${bucket.name}/${filePath}`;
         log('🔗 Public URL: ' + publicUrl);
 

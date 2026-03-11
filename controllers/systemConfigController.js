@@ -59,6 +59,12 @@ exports.updateSystemConfig = async (req, res) => {
       if (worksheetSettings.editWindowDays !== undefined) config.worksheetSettings.editWindowDays = Number(worksheetSettings.editWindowDays);
     }
 
+    // ── Custom Tool Tags ──
+    const { toolTags } = req.body;
+    if (toolTags !== undefined && Array.isArray(toolTags)) {
+      config.toolTags = toolTags.map(t => t.trim().toLowerCase()).filter(Boolean);
+    }
+
     await config.save();
 
     // Return saved config — rename model field 'payment' → 'payments' so

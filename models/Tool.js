@@ -12,7 +12,6 @@ const toolSchema = new mongoose.Schema({
     },
     type: {
         type: String,
-        enum: ['document', 'image', 'video', 'tutorial'],
         required: true
     },
     url: {

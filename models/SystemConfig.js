@@ -75,6 +75,12 @@ const systemConfigSchema = new mongoose.Schema(
       },
     },
 
+    // --- Custom Tool Tags ---
+    toolTags: {
+      type: [String],
+      default: [],
+    },
+
     // Future configurations can be added here
   },
   {
