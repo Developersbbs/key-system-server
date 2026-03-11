@@ -12,7 +12,7 @@ const announcementSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['info', 'warning', 'success', 'urgent'],
+    // enum: ['info', 'warning', 'success', 'urgent'],
     default: 'info',
   },
   createdBy: {
