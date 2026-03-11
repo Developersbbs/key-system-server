@@ -24,9 +24,9 @@ const systemConfigSchema = new mongoose.Schema(
     // --- Payment Details ---
     payment: [
       {
-        label:{ 
-            type: String, 
-            default: "" 
+        label: {
+          type: String,
+          default: ""
         },
         upiId: {
           type: String,
@@ -58,6 +58,22 @@ const systemConfigSchema = new mongoose.Schema(
         },
       },
     ],
+
+    // --- Worksheet Settings ---
+    worksheetSettings: {
+      startHour: {
+        type: Number,
+        default: 6,
+      },
+      endHour: {
+        type: Number,
+        default: 24,
+      },
+      editWindowDays: {
+        type: Number,
+        default: 0, // 0 means only same day
+      },
+    },
 
     // Future configurations can be added here
   },

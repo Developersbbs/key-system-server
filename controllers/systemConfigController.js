@@ -30,7 +30,7 @@ exports.updateSystemConfig = async (req, res) => {
 
     // ── Zoom (unchanged) ──
     if (zoomAccountId !== undefined) config.zoomAccountId = zoomAccountId.trim();
-    if (zoomClientId  !== undefined) config.zoomClientId  = zoomClientId.trim();
+    if (zoomClientId !== undefined) config.zoomClientId = zoomClientId.trim();
     if (zoomClientSecret !== undefined) config.zoomClientSecret = zoomClientSecret.trim();
     if (zoomHostEmail !== undefined) config.zoomHostEmail = zoomHostEmail.trim();
 
@@ -40,15 +40,23 @@ exports.updateSystemConfig = async (req, res) => {
 
     if (payments !== undefined && Array.isArray(payments)) {
       config.payment = payments.map((p) => ({
-        label:         p.label?.trim()         || "",
-        upiId:         p.upiId?.trim()         || "",
+        label: p.label?.trim() || "",
+        upiId: p.upiId?.trim() || "",
         accountNumber: p.accountNumber?.trim() || "",
-        ifscCode:      p.ifscCode?.trim()      || "",
-        accountName:   p.accountName?.trim()   || "",
-        qrCodeUrl:     p.qrCodeUrl?.trim()     || "",
-        bankImage1:    p.bankImage1?.trim()     || "",
-        bankImage2:    p.bankImage2?.trim()     || "",
+        ifscCode: p.ifscCode?.trim() || "",
+        accountName: p.accountName?.trim() || "",
+        qrCodeUrl: p.qrCodeUrl?.trim() || "",
+        bankImage1: p.bankImage1?.trim() || "",
+        bankImage2: p.bankImage2?.trim() || "",
       }));
+    }
+
+    // ── Worksheet Settings ──
+    const { worksheetSettings } = req.body;
+    if (worksheetSettings) {
+      if (worksheetSettings.startHour !== undefined) config.worksheetSettings.startHour = Number(worksheetSettings.startHour);
+      if (worksheetSettings.endHour !== undefined) config.worksheetSettings.endHour = Number(worksheetSettings.endHour);
+      if (worksheetSettings.editWindowDays !== undefined) config.worksheetSettings.editWindowDays = Number(worksheetSettings.editWindowDays);
     }
 
     await config.save();

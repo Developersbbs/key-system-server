@@ -1,16 +1,24 @@
 const DailyWorksheet = require('../models/DailyWorksheet');
+const SystemConfig = require('../models/SystemConfig');
 
 // Member: Create a new daily worksheet entry
 exports.submitWorksheet = async (req, res) => {
     try {
         const { date, name, data } = req.body;
 
+        const config = await SystemConfig.getConfig();
+        const settings = config.worksheetSettings || { startHour: 6, endHour: 24 };
+
         const parsedDate = new Date(date || Date.now());
 
-        // Restrict submission to between 6:00 AM and 11:59 PM
+        // Restrict submission based on config hours
         const currentHour = new Date().getHours();
-        if (currentHour < 6) {
-            return res.status(403).json({ message: 'Worksheets can only be submitted between 6:00 AM and 11:59 PM.' });
+        if (currentHour < settings.startHour || currentHour >= settings.endHour) {
+            const startStr = settings.startHour > 12 ? `${settings.startHour - 12}:00 PM` : `${settings.startHour}:00 AM`;
+            const endStr = settings.endHour > 12 ? `${settings.endHour - 12}:00 PM` : (settings.endHour === 24 ? '12:00 AM' : `${settings.endHour}:00 AM`);
+            return res.status(403).json({
+                message: `Worksheets can only be submitted between ${startStr} and ${endStr}.`
+            });
         }
 
         parsedDate.setHours(0, 0, 0, 0); // Normalize to midnight
@@ -92,15 +100,25 @@ exports.updateWorksheet = async (req, res) => {
             return res.status(403).json({ message: 'Not authorized to edit other members worksheets' });
         }
 
-        // Check if it's from today
+        const config = await SystemConfig.getConfig();
+        const settings = config.worksheetSettings || { editWindowDays: 0 };
+
+        // Check if it's within the allowed edit window
         const worksheetDate = new Date(worksheet.date);
+        worksheetDate.setHours(0, 0, 0, 0);
+
         const today = new Date();
-        if (
-            worksheetDate.getDate() !== today.getDate() ||
-            worksheetDate.getMonth() !== today.getMonth() ||
-            worksheetDate.getFullYear() !== today.getFullYear()
-        ) {
-            return res.status(403).json({ message: 'Can only edit worksheets submitted today' });
+        today.setHours(0, 0, 0, 0);
+
+        const diffTime = Math.abs(today - worksheetDate);
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        if (diffDays > settings.editWindowDays) {
+            return res.status(403).json({
+                message: settings.editWindowDays === 0
+                    ? 'Can only edit worksheets submitted today'
+                    : `Can only edit worksheets within ${settings.editWindowDays} day(s) of submission`
+            });
         }
 
         // Restrict time if needed? The user said 12am to 12pm, maybe we skip time check for edits, or keep it open.
@@ -134,15 +152,25 @@ exports.deleteWorksheet = async (req, res) => {
             return res.status(403).json({ message: 'Not authorized to delete other members worksheets' });
         }
 
-        // Check if it's from today
+        const config = await SystemConfig.getConfig();
+        const settings = config.worksheetSettings || { editWindowDays: 0 };
+
+        // Check if it's within the allowed window
         const worksheetDate = new Date(worksheet.date);
+        worksheetDate.setHours(0, 0, 0, 0);
+
         const today = new Date();
-        if (
-            worksheetDate.getDate() !== today.getDate() ||
-            worksheetDate.getMonth() !== today.getMonth() ||
-            worksheetDate.getFullYear() !== today.getFullYear()
-        ) {
-            return res.status(403).json({ message: 'Can only delete worksheets submitted today' });
+        today.setHours(0, 0, 0, 0);
+
+        const diffTime = Math.abs(today - worksheetDate);
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        if (diffDays > settings.editWindowDays) {
+            return res.status(403).json({
+                message: settings.editWindowDays === 0
+                    ? 'Can only delete worksheets submitted today'
+                    : `Can only delete worksheets within ${settings.editWindowDays} day(s) of submission`
+            });
         }
 
         await worksheet.deleteOne();
